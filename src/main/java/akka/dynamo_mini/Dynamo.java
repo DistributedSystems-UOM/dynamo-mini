@@ -42,7 +42,6 @@ public class Dynamo {
     }
 
     public static void main(String[] args) {
-        VirtualNode virtualNode = new VirtualNode();
 
         // Create the 'helloakka' actor system
         final ActorSystem system = ActorSystem.create("helloakka");
