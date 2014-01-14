@@ -1,83 +1,71 @@
 package akka.dynamo_mini;
 
-import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
-
+import akka.actor.*;
+import akka.cluster.Cluster;
+import akka.contrib.pattern.ClusterClient;
+import akka.contrib.pattern.ClusterSingletonManager;
+import akka.contrib.pattern.ClusterSingletonPropsFactory;
+import akka.dynamo_mini.coordination.Bootstraper;
+import akka.dynamo_mini.loadbalancer.DummyClient;
+import akka.dynamo_mini.workers.WorkExecutor;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import scala.concurrent.duration.Duration;
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Inbox;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
+import scala.concurrent.duration.FiniteDuration;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Dynamo {
 
-    public static class Greet implements Serializable {}
-    public static class WhoToGreet implements Serializable {
-        public final String who;
-        public WhoToGreet(String who) {
-            this.who = who;
-        }
-    }
-    public static class Greeting implements Serializable {
-        public final String message;
-        public Greeting(String message) {
-            this.message = message;
-        }
+    public static void main(String[] args) throws InterruptedException {
+        /**
+         * Starting of Dynamo mini actors ans system setup
+         */
+        Address joinAddress = startBootstraps(null, "bootstrap");
+        Thread.sleep(5000);
+        startBootstraps(joinAddress, "bootstrap");
+        startVirtualNodes(joinAddress);
+        Thread.sleep(5000);
+        startLoadBalancer(joinAddress);
     }
 
-    public static class Greeter extends UntypedActor {
-        String greeting = "";
+    private static String systemName = "Dynamo-mini";
+    private static FiniteDuration workTimeout = Duration.create(10, "seconds");
 
-        public void onReceive(Object message) {
-            if (message instanceof WhoToGreet)
-                greeting = "hello, " + ((WhoToGreet) message).who;
+    public static Address startBootstraps(Address joinAddress, String role) {
+        Config conf = ConfigFactory.parseString("akka.cluster.roles=[" + role + "]").
+                withFallback(ConfigFactory.load());
+        ActorSystem system = ActorSystem.create(systemName, conf);
+        Address realJoinAddress =
+                (joinAddress == null) ? Cluster.get(system).selfAddress() : joinAddress;
+        Cluster.get(system).join(realJoinAddress);
 
-            else if (message instanceof Greet)
-                // Send the current greeting back to the sender
-                getSender().tell(new Greeting(greeting), getSelf());
+        system.actorOf(ClusterSingletonManager.defaultProps("active",
+                PoisonPill.getInstance(), role, new ClusterSingletonPropsFactory() {
+            public Props create(Object handOverData) {
+                return Bootstraper.props(workTimeout);
+            }
+        }), "bootstraper");
 
-            else unhandled(message);
-        }
+        return realJoinAddress;
     }
 
-    public static void main(String[] args) {
-
-        // Create the 'helloakka' actor system
-        final ActorSystem system = ActorSystem.create("helloakka");
-
-        // Create the 'greeter' actor
-        final ActorRef greeter = system.actorOf(Props.create(Greeter.class), "greeter");
-
-        // Create the "actor-in-a-box"
-        final Inbox inbox = Inbox.create(system);
-
-        // Tell the 'greeter' to change its 'greeting' message
-        greeter.tell(new WhoToGreet("akka"), ActorRef.noSender());
-
-        // Ask the 'greeter for the latest 'greeting'
-        // Reply should go to the "actor-in-a-box"
-        inbox.send(greeter, new Greet());
-
-        // Wait 5 seconds for the reply with the 'greeting' message
-        Greeting greeting1 = (Greeting) inbox.receive(Duration.create(5, TimeUnit.SECONDS));
-        System.out.println("Greeting: " + greeting1.message);
-
-        // Change the greeting and ask for it again
-        greeter.tell(new WhoToGreet("typesafe"), ActorRef.noSender());
-        inbox.send(greeter, new Greet());
-        Greeting greeting2 = (Greeting) inbox.receive(Duration.create(5, TimeUnit.SECONDS));
-        System.out.println("Greeting: " + greeting2.message);
-
-        // after zero seconds, send a Greet message every second to the greeter with a sender of the GreetPrinter
-        ActorRef greetPrinter = system.actorOf(Props.create(GreetPrinter.class));
-        system.scheduler().schedule(Duration.Zero(), Duration.create(1, TimeUnit.SECONDS), greeter, new Greet(), system.dispatcher(), greetPrinter);
+    public static void startVirtualNodes(Address joinAddress) {
+        ActorSystem system = ActorSystem.create(systemName);
+        Cluster.get(system).join(joinAddress);
+        ActorRef frontend = system.actorOf(Props.create(VirtualNode.class), "virtualnode");
+        /*system.actorOf(Props.create(WorkProducer.class, frontend), "producer");
+        system.actorOf(Props.create(WorkResultConsumer.class), "consumer");*/
     }
 
-    public static class GreetPrinter extends UntypedActor {
-        public void onReceive(Object message) {
-            if (message instanceof Greeting)
-                System.out.println(((Greeting) message).message);
-        }
+    public static void startLoadBalancer(Address contactAddress) {
+        ActorSystem system = ActorSystem.create(systemName);
+        Set<ActorSelection> initialContacts = new HashSet<ActorSelection>();
+        initialContacts.add(system.actorSelection(contactAddress + "/user/receptionist"));
+        ActorRef clusterClient = system.actorOf(ClusterClient.defaultProps(initialContacts),
+                "clusterClient");
+        system.actorOf(DummyClient.props(clusterClient, Props.create(WorkExecutor.class)), "dummyclient");
     }
+
 }
