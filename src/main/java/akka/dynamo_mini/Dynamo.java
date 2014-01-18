@@ -7,12 +7,16 @@ import akka.contrib.pattern.ClusterSingletonManager;
 import akka.contrib.pattern.ClusterSingletonPropsFactory;
 import akka.dynamo_mini.coordination.Bootstraper;
 import akka.dynamo_mini.loadbalancer.DummyClient;
+import akka.dynamo_mini.node_management.ConsistentHash;
+import akka.dynamo_mini.node_management.HashFunction;
+import akka.dynamo_mini.node_management.TestActor;
 import akka.dynamo_mini.workers.WorkExecutor;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,12 +26,23 @@ public class Dynamo {
         /**
          * Starting of Dynamo mini actors ans system setup
          */
-        Address joinAddress = startBootstraps(null, "bootstrap");
-        Thread.sleep(5000);
-        startBootstraps(joinAddress, "bootstrap");
-        startVirtualNodes(joinAddress);
-        Thread.sleep(5000);
-        startLoadBalancer(joinAddress);
+//        Address joinAddress = startBootstraps(null, "bootstrap");
+//        Thread.sleep(5000);
+//        startBootstraps(joinAddress, "bootstrap");
+//        startVirtualNodes(joinAddress);
+//        Thread.sleep(5000);
+//        startLoadBalancer(joinAddress);
+        
+        ActorSystem system = ActorSystem.create("Dynamo-mini");
+        ActorRef node1 = system.actorOf(Props.create(TestActor.class), "node1");
+        ActorRef node2 = system.actorOf(Props.create(TestActor.class), "node2");
+        ArrayList<ActorRef> nodeList = new ArrayList<ActorRef>();
+        nodeList.add(node1);
+        nodeList.add(node2);
+        HashFunction hashFunction = new HashFunction();
+        ConsistentHash<ActorRef> nodeManager = new ConsistentHash<>(hashFunction, 0, nodeList);
+        System.out.println("Done ###");
+        
     }
 
     private static String systemName = "Dynamo-mini";
