@@ -13,11 +13,11 @@ import akka.dynamo_mini.VirtualNode;
 public class MySQL implements Persistence{
     @Override
     public VirtualNode.KeyValue put(String key, VirtualNode.KeyValue value) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 
     @Override
     public VirtualNode.KeyValue get(String key) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;
     }
 }

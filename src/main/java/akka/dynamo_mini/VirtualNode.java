@@ -17,6 +17,8 @@ import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.ClusterEvent.MemberUp;
 import akka.cluster.Member;
 import akka.cluster.MemberStatus;
+import akka.dynamo_mini.persistence_engine.MySQL;
+import akka.dynamo_mini.persistence_engine.Persistence;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.binary.Hex;
 
@@ -47,6 +49,15 @@ public class VirtualNode extends UntypedActor {
 
     @Override
     public void onReceive(Object message) {
+        if(message instanceof PutKeyValue){
+            PutKeyValue putKeyValue = (PutKeyValue) message;
+
+        } else if(message instanceof StateMachinePutRequest){
+            StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) message;
+            Persistence persistence = new MySQL();
+            persistence.get(stateMachinePutRequest.getKey());
+        }
+
         if (message instanceof TransformationJob) {
             TransformationJob job = (TransformationJob) message;
             getSender()

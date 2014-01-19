@@ -49,6 +49,30 @@ public interface VirtualNodeProtocols {
         }
     }
 
+    public static class StateMachinePutRequest implements Serializable {
+        private final String key;
+        private final Context context;
+        private final Object object;
+
+        public StateMachinePutRequest(String key, Context context, Object object){
+            this.key = key;
+            this.context = context;
+            this.object = object;
+        }
+
+        public String getKey(){
+            return this.key;
+        }
+
+        public Context getContext(){
+            return this.context;
+        }
+
+        public Object getObjectValue(){
+            return this.object;
+        }
+    }
+
     public static class KeyValue implements Serializable{
         private final Object newObject;
 

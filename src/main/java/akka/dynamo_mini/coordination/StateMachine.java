@@ -26,4 +26,8 @@ public class StateMachine extends UntypedActor {
     public void onReceive(Object o) throws Exception {
 
     }
+
+    private void process(){
+
+    }
 }
