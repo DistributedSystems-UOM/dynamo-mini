@@ -41,7 +41,8 @@ public class Dynamo {
         nodeList.add(node2);
         HashFunction hashFunction = new HashFunction();
         ConsistentHash<ActorRef> nodeManager = new ConsistentHash<>(hashFunction, 1, nodeList);
-        System.out.println("'KeyTest' is storing in "+nodeManager.get("KeyTest").toString()+" of the ring.");
+        System.out.println("'KeyTest1' is storing in "+nodeManager.get("KeyTest1").toString()+" of the ring.");
+        System.out.println("'KeyTest2' is storing in "+nodeManager.get("KeyTest2").toString()+" of the ring.");
         System.out.println("Done ###");
         
     }

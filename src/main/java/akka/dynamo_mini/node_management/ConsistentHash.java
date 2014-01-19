@@ -8,7 +8,7 @@ public class ConsistentHash<T> {
 
     private final HashFunction hashFunction;
     private final int numberOfReplicas;
-    private final SortedMap<Integer, T> circle = new TreeMap<Integer, T>();
+    private final SortedMap<Integer, T> ring = new TreeMap<Integer, T>();
 
     public ConsistentHash(HashFunction hashFunction, int numberOfReplicas, Collection<T> nodes) {
         this.hashFunction = hashFunction;
@@ -21,25 +21,26 @@ public class ConsistentHash<T> {
 
     public void add(T node) {
         for (int i = 0; i < numberOfReplicas; i++) {
-            circle.put(hashFunction.hash(node.toString() + i), node);
+            ring.put(hashFunction.hash(node.toString() + i), node);
         }
     }
 
     public void remove(T node) {
         for (int i = 0; i < numberOfReplicas; i++) {
-            circle.remove(hashFunction.hash(node.toString() + i));
+            ring.remove(hashFunction.hash(node.toString() + i));
         }
     }
 
     public T get(Object key) {
-        if (circle.isEmpty()) {
+        if (ring.isEmpty()) {
             return null;
         }
         int hash = hashFunction.hash(key);
-        if (!circle.containsKey(hash)) {
-            SortedMap<Integer, T> tailMap = circle.tailMap(hash);
-            hash = tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey();
+        System.out.println("GET : "+hash);
+        if (!ring.containsKey(hash)) {
+            SortedMap<Integer, T> tailMap = ring.tailMap(hash);
+            hash = tailMap.isEmpty() ? ring.firstKey() : tailMap.firstKey();
         }
-        return circle.get(hash);
+        return ring.get(hash);
     }
 }
