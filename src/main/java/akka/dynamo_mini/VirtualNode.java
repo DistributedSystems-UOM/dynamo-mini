@@ -9,36 +9,41 @@ package akka.dynamo_mini;
  * @email: gckarunarathne@gmail.com
  */
 
-import akka.actor.ActorRef;
-import akka.actor.Terminated;
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import akka.cluster.Cluster;
-import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.ClusterEvent.MemberUp;
 import akka.cluster.Member;
-import akka.cluster.MemberStatus;
 import akka.dynamo_mini.persistence_engine.MySQL;
 import akka.dynamo_mini.persistence_engine.Persistence;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.codec.binary.Hex;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import static akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
 public class VirtualNode extends UntypedActor {
-
-    DigestUtils d = new DigestUtils();
+    String nodeName = "";
     Cluster cluster = Cluster.get(getContext().system());
-    List<ActorRef> backends = new ArrayList<ActorRef>();
+    ActorRef bootstraper, virtualNode;
+
+    List<ActorRef> backends = new ArrayList<>();
     int jobCounter = 0;
+
+    {
+        ActorSelection selection;
+        selection = getContext().actorSelection("/user/bootsraper");
+        selection.tell(new Identify(nodeName), getSelf());
+    }
+
+    public VirtualNode(ActorRef node){
+        virtualNode = node;
+    }
 
     //subscribe to cluster changes, MemberUp
     @Override
     public void preStart() {
         cluster.subscribe(getSelf(), MemberUp.class);
+        nodeName = self().path().name();
     }
 
     //re-subscribe when restart
@@ -49,16 +54,37 @@ public class VirtualNode extends UntypedActor {
 
     @Override
     public void onReceive(Object message) {
-        if(message instanceof PutKeyValue){
+        if (message instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) message;
 
-        } else if(message instanceof StateMachinePutRequest){
+        } else if (message instanceof StateMachinePutRequest) {
             StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) message;
             Persistence persistence = new MySQL();
             persistence.get(stateMachinePutRequest.getKey());
         }
 
-        if (message instanceof TransformationJob) {
+        if (message instanceof ActorIdentity) {
+            ActorIdentity identity = (ActorIdentity) message;
+            if (identity.correlationId().equals(nodeName)) {
+                ActorRef ref = identity.getRef();
+                if (ref == null)
+                    getContext().stop(getSelf());
+                else {
+                    bootstraper = ref;
+                    getContext().watch(bootstraper);
+                    virtualNode.tell(ref, getSelf());
+                }
+            }
+        } else if (message instanceof Terminated) {
+            final Terminated t = (Terminated) message;
+            if (t.getActor().equals(bootstraper)) {
+                getContext().stop(getSelf());
+            }
+        } else {
+            unhandled(message);
+        }
+
+        /*if (message instanceof TransformationJob) {
             TransformationJob job = (TransformationJob) message;
             getSender()
                     .tell(new TransformationResult(job.getText().toUpperCase()),
@@ -102,34 +128,12 @@ public class VirtualNode extends UntypedActor {
 
         } else {
             unhandled(message);
-        }
+        }*/
     }
 
     void register(Member member) {
         if (member.hasRole("frontend"))
             getContext().actorSelection(member.address() + "/user/frontend").tell(
                     BACKEND_REGISTRATION, getSelf());
-    }
-
-    public String getNodeId(String key) {
-        return  DigestUtils.sha1Hex(key);
-    }
-
-    public static final class KeyValue implements Serializable {
-        public final String workId;
-        public final Object value;
-
-        public KeyValue(String workId, Object job) {
-            this.workId = workId;
-            this.value = job;
-        }
-
-        @Override
-        public String toString() {
-            return "Work{" +
-                    "workId='" + workId + '\'' +
-                    ", job=" + value +
-                    '}';
-        }
     }
 }

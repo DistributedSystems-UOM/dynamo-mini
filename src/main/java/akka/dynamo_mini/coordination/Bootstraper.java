@@ -1,8 +1,9 @@
 package akka.dynamo_mini.coordination;
 
-import akka.actor.Props;
+import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
-import scala.concurrent.duration.FiniteDuration;
+import akka.contrib.pattern.DistributedPubSubExtension;
+import akka.contrib.pattern.DistributedPubSubMediator;
 
 /**
  * Class Description.
@@ -12,7 +13,11 @@ import scala.concurrent.duration.FiniteDuration;
  * Time: 10:51 PM
  * @email: gckarunarathne@gmail.com
  */
-public class Bootstraper extends UntypedActor{
+public class Bootstraper extends UntypedActor {
+
+    // activate the extension
+    ActorRef mediator =
+            DistributedPubSubExtension.get(getContext().system()).mediator();
 
     @Override
     public void preStart() {
@@ -25,7 +30,13 @@ public class Bootstraper extends UntypedActor{
     }
 
     @Override
-    public void onReceive(Object o) throws Exception {
-
+    public void onReceive(Object msg) throws Exception {
+        if (msg instanceof String) {
+            String in = (String) msg;
+            String out = in.toUpperCase();
+            mediator.tell(new DistributedPubSubMediator.Publish("content", out), getSelf());
+        } else {
+            unhandled(msg);
+        }
     }
 }

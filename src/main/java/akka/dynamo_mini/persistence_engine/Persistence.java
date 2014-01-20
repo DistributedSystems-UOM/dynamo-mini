@@ -1,6 +1,6 @@
 package akka.dynamo_mini.persistence_engine;
 
-import static akka.dynamo_mini.VirtualNode.KeyValue;
+import static akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
 /**
  * Class Description.

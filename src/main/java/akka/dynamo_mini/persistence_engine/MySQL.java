@@ -1,6 +1,7 @@
 package akka.dynamo_mini.persistence_engine;
 
 import akka.dynamo_mini.VirtualNode;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
 /**
  * Class Description.
@@ -12,12 +13,12 @@ import akka.dynamo_mini.VirtualNode;
  */
 public class MySQL implements Persistence{
     @Override
-    public VirtualNode.KeyValue put(String key, VirtualNode.KeyValue value) {
+    public KeyValue put(String key, KeyValue value) {
         return null;
     }
 
     @Override
-    public VirtualNode.KeyValue get(String key) {
+    public KeyValue get(String key) {
         return null;
     }
 }
