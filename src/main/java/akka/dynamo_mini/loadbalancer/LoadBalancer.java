@@ -3,6 +3,7 @@ package akka.dynamo_mini.loadbalancer;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dynamo_mini.protocol.GetReq;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -31,7 +32,10 @@ public class LoadBalancer extends UntypedActor{
     }
 
     @Override
-    public void onReceive(Object o) throws Exception {
-
+    public void onReceive(Object message) throws Exception {
+        if(message instanceof GetReq){
+            GetReq getReq = (GetReq)message;
+            System.out.println(getReq.key);
+        }
     }
 }

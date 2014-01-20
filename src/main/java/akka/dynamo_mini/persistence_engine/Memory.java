@@ -12,12 +12,12 @@ import akka.dynamo_mini.VirtualNode;
  */
 public class Memory implements Persistence {
     @Override
-    public VirtualNode.KeyValue put(String key, VirtualNode.KeyValue value) {
+    public KeyValue put(String key, KeyValue value) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public VirtualNode.KeyValue get(String key) {
+    public KeyValue get(String key) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 }
