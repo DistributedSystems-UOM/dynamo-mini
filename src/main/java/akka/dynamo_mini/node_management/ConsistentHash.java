@@ -8,7 +8,7 @@ public class ConsistentHash<T> {
 
     private final HashFunction hashFunction;
     private final int numberOfReplicas;
-    private final SortedMap<Integer, T> ring = new TreeMap<Integer, T>();
+    private final SortedMap<Integer, T> ring = new TreeMap<>();
 
     public ConsistentHash(HashFunction hashFunction, int numberOfReplicas, Collection<T> nodes) {
         this.hashFunction = hashFunction;

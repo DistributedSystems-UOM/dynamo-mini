@@ -3,6 +3,8 @@ package akka.dynamo_mini.loadbalancer;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -17,6 +19,7 @@ import scala.concurrent.duration.FiniteDuration;
  * Testing purpose.
  */
 public class LoadBalancer extends UntypedActor{
+    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     public static Props props(FiniteDuration workTimeout) {
         return Props.create(LoadBalancer.class, workTimeout);

@@ -1,6 +1,8 @@
 package akka.dynamo_mini.coordination;
 
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 /**
  * Class Description.
@@ -11,6 +13,7 @@ import akka.actor.UntypedActor;
  * @email: gckarunarathne@gmail.com
  */
 public class StateMachine extends UntypedActor {
+    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     @Override
     public void preStart() {
