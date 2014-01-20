@@ -16,10 +16,14 @@ import scala.concurrent.duration.FiniteDuration;
  * Auto generate get(), put() calls from dynamo-mini.
  * Testing purpose.
  */
-public class DummyClient extends UntypedActor{
+public class LoadBalancer extends UntypedActor{
+
+    public static Props props(FiniteDuration workTimeout) {
+        return Props.create(LoadBalancer.class, workTimeout);
+    }
 
     public static Props props(ActorRef clusterClient, Props workExecutorProps, FiniteDuration registerInterval) {
-        return Props.create(DummyClient.class, clusterClient, workExecutorProps, registerInterval);
+        return Props.create(LoadBalancer.class, clusterClient, workExecutorProps, registerInterval);
     }
 
     public static Props props(ActorRef clusterClient, Props workExecutorProps) {

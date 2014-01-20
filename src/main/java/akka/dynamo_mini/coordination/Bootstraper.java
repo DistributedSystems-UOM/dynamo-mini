@@ -14,10 +14,6 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public class Bootstraper extends UntypedActor{
 
-    public static Props props(FiniteDuration workTimeout) {
-        return Props.create(Bootstraper.class, workTimeout);
-    }
-
     @Override
     public void preStart() {
 

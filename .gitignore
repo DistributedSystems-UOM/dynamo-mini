@@ -1,3 +1,6 @@
+# Dynamo-mini
+src/main/java/akka/dynamo_mini/workers/
+
 ### IntelliJ Idea ###
 *.iml
 *.ipr

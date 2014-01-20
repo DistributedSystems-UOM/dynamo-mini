@@ -2,23 +2,19 @@ package akka.dynamo_mini;
 
 import akka.actor.*;
 import akka.cluster.Cluster;
-import akka.contrib.pattern.ClusterClient;
 import akka.contrib.pattern.ClusterSingletonManager;
 import akka.contrib.pattern.ClusterSingletonPropsFactory;
 import akka.dynamo_mini.coordination.Bootstraper;
-import akka.dynamo_mini.loadbalancer.DummyClient;
+import akka.dynamo_mini.loadbalancer.LoadBalancer;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
 import akka.dynamo_mini.node_management.TestActor;
-import akka.dynamo_mini.workers.WorkExecutor;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 public class Dynamo {
 
@@ -58,12 +54,12 @@ public class Dynamo {
                 (joinAddress == null) ? Cluster.get(system).selfAddress() : joinAddress;
         Cluster.get(system).join(realJoinAddress);
 
-        system.actorOf(ClusterSingletonManager.defaultProps("active",
+        /*system.actorOf(ClusterSingletonManager.defaultProps("active",
                 PoisonPill.getInstance(), role, new ClusterSingletonPropsFactory() {
             public Props create(Object handOverData) {
                 return Bootstraper.props(workTimeout);
             }
-        }), "bootstraper");
+        }), "bootstraper");*/
 
         return realJoinAddress;
     }
@@ -78,11 +74,14 @@ public class Dynamo {
 
     public static void startLoadBalancer(Address contactAddress) {
         ActorSystem system = ActorSystem.create(systemName);
-        Set<ActorSelection> initialContacts = new HashSet<ActorSelection>();
-        initialContacts.add(system.actorSelection(contactAddress + "/user/receptionist"));
-        ActorRef clusterClient = system.actorOf(ClusterClient.defaultProps(initialContacts),
-                "clusterClient");
-        system.actorOf(DummyClient.props(clusterClient, Props.create(WorkExecutor.class)), "dummyclient");
+        Cluster.get(system).join(contactAddress);
+
+        system.actorOf(ClusterSingletonManager.defaultProps("active",
+                PoisonPill.getInstance(), "frontend", new ClusterSingletonPropsFactory() {
+            public Props create(Object handOverData) {
+                return LoadBalancer.props(workTimeout);
+            }
+        }), "loadbalancer");
     }
 
 }
