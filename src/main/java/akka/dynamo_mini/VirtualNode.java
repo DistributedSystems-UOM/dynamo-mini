@@ -51,6 +51,7 @@ public class VirtualNode extends UntypedActor {
     //subscribe to cluster changes, MemberUp
     @Override
     public void preStart() {
+    	
         cluster.subscribe(getSelf(), MemberUp.class);
         virtualNode = getSelf();
         nodeName = self().path().name();

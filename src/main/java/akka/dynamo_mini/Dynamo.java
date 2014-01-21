@@ -14,39 +14,27 @@ public class Dynamo {
         /**
          * Starting of Dynamo mini actors ans system setup
          */
-        Address joinAddress = startLoadBalancer(null, "loadbalancer");
+    	Config conf = ConfigFactory.parseString("akka.cluster.roles=[ring]").withFallback(ConfigFactory.load());
+    	ActorSystem system = ActorSystem.create(systemName, conf);
+        Address joinAddress = Cluster.get(system).selfAddress();
         Thread.sleep(5000);
-        // startLoadBalancer(joinAddress, "loadbalancer");
-        startDynamoRing(joinAddress);
+       startDynamoRing(joinAddress);
+        
     }
 
     private static String systemName = "Dynamo-mini";
     private static FiniteDuration workTimeout = Duration.create(10, "seconds");
+    private static ActorRef bootstraper = null;
 
-    public static Address startLoadBalancer(Address joinAddress, String role) {
-        Config conf = ConfigFactory.parseString("akka.cluster.roles=[" + role + "]").
-                withFallback(ConfigFactory.load());
-        ActorSystem system = ActorSystem.create(systemName, conf);
-        Address realJoinAddress = (joinAddress == null) ? Cluster.get(system).selfAddress() : joinAddress;
-        Cluster.get(system).join(realJoinAddress);
-
-        /*system.actorOf(ClusterSingletonManager.defaultProps("active",
-                PoisonPill.getInstance(), role , new ClusterSingletonPropsFactory() {
-            public Props create(Object handOverData) {
-                return LoadBalancer.props(workTimeout);
-            }
-        }), "loadbalancer");*/
-
-        return  realJoinAddress;
-    }
-
+   
     public static void startDynamoRing(Address joinAddress) throws InterruptedException{
-        ActorSystem system = ActorSystem.create(systemName);
+        
+    	ActorSystem system = ActorSystem.create(systemName);
         Cluster.get(system).join(joinAddress);
-
-        system.actorOf(Props.create(Bootstraper.class), "bootstraper");
+        bootstraper =system.actorOf(Props.create(Bootstraper.class), "bootstraper");
+        
         Thread.sleep(5000);
-
+        System.out.println("Creating nodes");
         for(int i=1; i < 4 ; i++){ // Start Number of Virtual Nodes
             String nodeName = "node" + i;
             system.actorOf(Props.create(VirtualNode.class), nodeName);

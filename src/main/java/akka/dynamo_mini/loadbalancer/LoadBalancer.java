@@ -1,8 +1,12 @@
 package akka.dynamo_mini.loadbalancer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.cluster.ClusterEvent.MemberUp;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import scala.concurrent.duration.Duration;
@@ -19,22 +23,27 @@ import scala.concurrent.duration.FiniteDuration;
  * Testing purpose.
  */
 public class LoadBalancer extends UntypedActor{
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    public static Props props(FiniteDuration workTimeout) {
-        return Props.create(LoadBalancer.class, workTimeout);
-    }
+	private List<ActorRef> ringMembers = new ArrayList<ActorRef>();
+	
+	@Override
+	public void onReceive(Object message) throws Exception {
+		// TODO Auto-generated method stub
+		
+		if (message instanceof MemberUp) {
 
-    public static Props props(ActorRef clusterClient, Props workExecutorProps, FiniteDuration registerInterval) {
-        return Props.create(LoadBalancer.class, clusterClient, workExecutorProps, registerInterval);
-    }
-
-    public static Props props(ActorRef clusterClient, Props workExecutorProps) {
-        return props(clusterClient, workExecutorProps, Duration.create(10, "seconds"));
-    }
-
-    @Override
-    public void onReceive(Object o) throws Exception {
-
-    }
+		      ringMembers.add(getSender());
+		 
+		 } else {
+		      unhandled(message);
+		 }
+		
+	}
+	
+	
+	
+	
+	
+	
+   
 }
