@@ -31,6 +31,12 @@ public class LoadBalancer extends UntypedActor{
         return props(clusterClient, workExecutorProps, Duration.create(10, "seconds"));
     }
 
+    private final FiniteDuration workTimeout;
+    
+    public LoadBalancer(FiniteDuration workTimeout) {
+        this.workTimeout = workTimeout;
+      }
+    
     @Override
     public void onReceive(Object message) throws Exception {
         if(message instanceof GetReq){
