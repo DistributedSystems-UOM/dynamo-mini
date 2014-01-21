@@ -3,8 +3,11 @@ package akka.dynamo_mini;
 import akka.actor.*;
 import akka.cluster.Cluster;
 import akka.dynamo_mini.coordination.Bootstraper;
+import akka.dynamo_mini.loadbalancer.LoadBalancer;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -16,10 +19,14 @@ public class Dynamo {
          */
     	Config conf = ConfigFactory.parseString("akka.cluster.roles=[ring]").withFallback(ConfigFactory.load());
     	ActorSystem system = ActorSystem.create(systemName, conf);
-        Address joinAddress = Cluster.get(system).selfAddress();
-        Thread.sleep(5000);
-       startDynamoRing(joinAddress);
+    	Address joinAddress = Cluster.get(system).selfAddress();
+    	Thread.sleep(5000);
+    	Cluster.get(system).join(joinAddress);
+    	ActorRef loadbalancer = system.actorOf(Props.create(LoadBalancer.class), "loadbalancer");
+    	Thread.sleep(5000);
+    	startDynamoRing(joinAddress);
         
+       
     }
 
     private static String systemName = "Dynamo-mini";

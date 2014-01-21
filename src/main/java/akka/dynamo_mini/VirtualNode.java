@@ -28,6 +28,7 @@ import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
 public class VirtualNode extends UntypedActor {
+	
     String nodeName = "";
     int numReplicas = 1;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -36,11 +37,15 @@ public class VirtualNode extends UntypedActor {
     ActorRef bootstraperRef, virtualNode;
     ActorSelection bootstraper;
     boolean isBootstraperUp = false;
+    
     private ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
-
+    
     /**
      * Store the preference list of other virtual nodes
      */
+    
+    
+    
     ConsistentHash<ActorRef> ringManager;
 
     {
@@ -56,11 +61,11 @@ public class VirtualNode extends UntypedActor {
         virtualNode = getSelf();
         nodeName = self().path().name();
         Address address = cluster.selfAddress();
-        System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
+        //System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" +address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-
         ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
+        
     }
 
     //re-subscribe when restart

@@ -19,6 +19,7 @@ import akka.event.LoggingAdapter;
  * @email: gckarunarathne@gmail.com
  */
 public class Bootstraper extends UntypedActor {
+	
     final int numReplicas = 1;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     // activate the extension
