@@ -24,7 +24,7 @@ public class Dynamo {
     	Cluster.get(system).join(joinAddress);
     	ActorRef loadbalancer = system.actorOf(Props.create(LoadBalancer.class), "loadbalancer");
     	Thread.sleep(5000);
-    	startDynamoRing(joinAddress);
+    	startDynamoRing(system,joinAddress);
         
        
     }
@@ -34,9 +34,9 @@ public class Dynamo {
     private static ActorRef bootstraper = null;
 
    
-    public static void startDynamoRing(Address joinAddress) throws InterruptedException{
+    public static void startDynamoRing(ActorSystem system,Address joinAddress) throws InterruptedException{
         
-    	ActorSystem system = ActorSystem.create(systemName);
+    	
         Cluster.get(system).join(joinAddress);
         bootstraper =system.actorOf(Props.create(Bootstraper.class), "bootstraper");
         
