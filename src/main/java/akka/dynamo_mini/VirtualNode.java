@@ -28,7 +28,6 @@ import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
 public class VirtualNode extends UntypedActor {
-	
     String nodeName = "";
     int numReplicas = 1;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -37,17 +36,12 @@ public class VirtualNode extends UntypedActor {
     ActorRef bootstraperRef, virtualNode;
     ActorSelection bootstraper;
     boolean isBootstraperUp = false;
-    
     private ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
-    
+
     /**
      * Store the preference list of other virtual nodes
      */
-    
-    
-    
     ConsistentHash<ActorRef> ringManager;
-
     {
         // subscribe to the topic named "content"
         mediator.tell(new DistributedPubSubMediator.Subscribe("dynamo_mini_bootstraper", getSelf()), getSelf());
@@ -56,14 +50,14 @@ public class VirtualNode extends UntypedActor {
     //subscribe to cluster changes, MemberUp
     @Override
     public void preStart() {
-    	
         cluster.subscribe(getSelf(), MemberUp.class);
         virtualNode = getSelf();
         nodeName = self().path().name();
         Address address = cluster.selfAddress();
-        //System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
+        System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" +address.hostPort() + "/user/bootstraper");
-        bootstraper.tell(new Identify(nodeName), virtualNode);
+        //bootstraper.tell(new Identify(nodeName), virtualNode);
+        bootstraper.tell(new NewNodeConnected(virtualNode), virtualNode);
         ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
         
     }
@@ -141,7 +135,13 @@ public class VirtualNode extends UntypedActor {
                 getContext().stop(getSelf());
             }
 
-        } else {
+        } else if( msg instanceof Test){
+        	
+        	Test data = (Test)msg;
+        	
+        	System.out.println("Actor : "+nodeName+" message: "+data.getMsg());
+        	
+        }else {
             unhandled(msg);
         }
 
