@@ -1,6 +1,8 @@
 package akka.dynamo_mini.persistence_engine;
 
-import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.KeyValue;
+
+import java.util.Hashtable;
 
 /**
  * Class Description.
@@ -11,13 +13,15 @@ import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
  * @email: gckarunarathne@gmail.com
  */
 public class Memory implements Persistence {
+    private Hashtable<String, Object> values = new Hashtable<>();
+
     @Override
     public KeyValue put(String key, KeyValue value) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new KeyValue(values.put(key, value.getNewObject()));
     }
 
     @Override
     public KeyValue get(String key) {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return new KeyValue(values.get(key));
     }
 }

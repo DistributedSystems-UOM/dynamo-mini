@@ -11,7 +11,13 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
 /**
- * Class Description.
+ * According to the section 4.8.2 - External Discovery in Amazon Dynamo paper, when new node wants to the
+ * ring and get to know about other nodes in the ring, it needs to have separate set of nodes which are known to
+ * external parties.
+ * In Dynamo mini, we are using separate set of actors who are playing the role of seeds for the system.
+ * The paper propose two types methods to obtains the seeds;
+ * 1. from a static configuration
+ * 2. from a configuration service
  *
  * @author: Gihan Karunarathne
  * Date: 1/14/14

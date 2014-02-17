@@ -30,7 +30,4 @@ public class StateMachine extends UntypedActor {
 
     }
 
-    private void process(){
-
-    }
 }

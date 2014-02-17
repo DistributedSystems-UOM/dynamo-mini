@@ -12,9 +12,9 @@ package akka.dynamo_mini;
 import akka.actor.*;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.MemberUp;
-import akka.cluster.Member;
 import akka.contrib.pattern.DistributedPubSubExtension;
 import akka.contrib.pattern.DistributedPubSubMediator;
+import akka.dynamo_mini.coordination.StateMachine;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
 import akka.dynamo_mini.persistence_engine.MySQL;
@@ -25,7 +25,10 @@ import akka.event.LoggingAdapter;
 import java.util.ArrayList;
 
 import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
-import static akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
+import static akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
+import static akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
+import static akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
+import static akka.dynamo_mini.protocol.VirtualNodeProtocols.StateMachinePutRequest;
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
@@ -56,7 +59,7 @@ public class VirtualNode extends UntypedActor {
         nodeName = self().path().name();
         Address address = cluster.selfAddress();
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
-        bootstraper = getContext().actorSelection(address.protocol() + "://" +address.hostPort() + "/user/bootstraper");
+        bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
 
         ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
@@ -71,9 +74,45 @@ public class VirtualNode extends UntypedActor {
     @Override
     public void onReceive(Object msg) {
         /*****************************************************
+         * Client Requests to the Coordinator
+         *****************************************************/
+        if (msg instanceof ReadRequest) { // most frequent request
+            ReadRequest readRequest = (ReadRequest) msg;
+            /**
+             * If this is the node responsible for handling the request, then process.
+             * Otherwise forward to the relevant node (coordinator).
+             */
+            ActorRef coordinator = ringManager.get(readRequest.getKey());
+            if (coordinator.path().name().equals(virtualNode.path().name())) {
+                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
+                /**
+                 * Send Preference List to the State machine
+                 */
+
+            } else {
+                coordinator.forward(msg, getContext());
+            }
+        } else if (msg instanceof WriteRequest) {
+            WriteRequest writeRequest = (WriteRequest) msg;
+            /**
+             * If this is the node responsible for handling the request, then process.
+             * Otherwise forward to the relevant node (coordinator).
+             */
+            ActorRef coordinator = ringManager.get(writeRequest.getKey());
+            if (coordinator.path().name().equals(virtualNode.path().name())) {
+                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
+                /**
+                 * Send Preference List to the State machine
+                 */
+
+            } else {
+                coordinator.forward(msg, getContext());
+            }
+        }
+        /*****************************************************
          * Virtual Node steps
          *****************************************************/
-        if (msg instanceof PutKeyValue) {
+        else if (msg instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
 
         } else if (msg instanceof StateMachinePutRequest) {
@@ -108,11 +147,10 @@ public class VirtualNode extends UntypedActor {
                 ActorRef ref = identity.getRef();
                 if (ref == null) {
                     getContext().stop(getSelf());
-                }
-                else {
+                } else {
                     bootstraperRef = ref;
                     getContext().watch(bootstraperRef);
-                    log.info(nodeName +" send ACK to Bootstraper: " + ref.path().name());
+                    log.info(nodeName + " send ACK to Bootstraper: " + ref.path().name());
                     virtualNode.tell("ACK by " + nodeName, getSelf());
                 }
                 isBootstraperUp = true;
