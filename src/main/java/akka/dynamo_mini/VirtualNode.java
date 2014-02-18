@@ -32,7 +32,7 @@ import static akka.dynamo_mini.protocol.VirtualNodeProtocols.StateMachinePutRequ
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
-    int numReplicas = 1;
+    int numReplicas = 3;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     Cluster cluster = Cluster.get(getContext().system());
@@ -45,6 +45,8 @@ public class VirtualNode extends UntypedActor {
      * Store the preference list of other virtual nodes
      */
     ConsistentHash<ActorRef> ringManager;
+
+
     {
         // subscribe to the topic named "content"
         mediator.tell(new DistributedPubSubMediator.Subscribe("dynamo_mini_bootstraper", getSelf()), getSelf());
@@ -61,7 +63,7 @@ public class VirtualNode extends UntypedActor {
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
         ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
-        
+
     }
 
     //re-subscribe when restart
@@ -77,6 +79,7 @@ public class VirtualNode extends UntypedActor {
          *****************************************************/
         if (msg instanceof ReadRequest) { // most frequent request
             ReadRequest readRequest = (ReadRequest) msg;
+            log.info("Read Request -- ( " + readRequest.getKey() + ")");
             /**
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
@@ -89,11 +92,12 @@ public class VirtualNode extends UntypedActor {
                  */
 
             } else {
+                log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
             }
         } else if (msg instanceof WriteRequest) {
             WriteRequest writeRequest = (WriteRequest) msg;
-            System.out.println(nodeName+" # Write Request -- ( " + writeRequest.getKey() +","+ writeRequest.getObjectValue()+" )");
+            log.info("Write Request -- ( " + writeRequest.getKey() + "," + writeRequest.getObjectValue() + " )");
             /**
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
@@ -104,8 +108,13 @@ public class VirtualNode extends UntypedActor {
                 /**
                  * Send Preference List to the State machine
                  */
-
+                ArrayList list = ringManager.getPreferenceList(writeRequest.getKey());
+                for (int i = 0; i < list.size(); i++) {
+                    ActorRef ref = (ActorRef) list.get(i);
+                    log.info(i + " " + ref.path().name());
+                }
             } else {
+                log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
             }
         }
@@ -119,11 +128,11 @@ public class VirtualNode extends UntypedActor {
             StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) msg;
             Persistence persistence = new MySQL();
             persistence.get(stateMachinePutRequest.getKey());
-
-            /**************************************************
-             * Bootstrap steps
-             **************************************************/
-        } else if (msg instanceof DistributedPubSubMediator.SubscribeAck) {
+        }
+        /**************************************************
+         * Bootstrap steps
+         **************************************************/
+        else if (msg instanceof DistributedPubSubMediator.SubscribeAck) {
             log.info("subscribing " + nodeName);
             // Bootstraper is running. Ask to send join to ring to current virtual nodes in the ring.
             log.info("Ask for join to the ring from bootstraper");
@@ -169,17 +178,19 @@ public class VirtualNode extends UntypedActor {
 
         } else if (msg instanceof Terminated) {
             final Terminated t = (Terminated) msg;
+            ActorRef actor = t.getActor();
+            log.info("Actor: " + actor.path() + " terminated. Detect by VN: " + nodeName);
             if (t.getActor().equals(bootstraperRef)) {
                 getContext().stop(getSelf());
             }
 
-        } else if( msg instanceof Test){
-        	
-        	Test data = (Test)msg;
-        	
-        	System.out.println("Actor : "+nodeName+" message: "+data.getMsg());
-        	
-        }else {
+        } else if (msg instanceof Test) {
+
+            Test data = (Test) msg;
+
+            System.out.println("Actor : " + nodeName + " message: " + data.getMsg());
+
+        } else {
             unhandled(msg);
         }
 
