@@ -45,13 +45,13 @@ import akka.routing.SmallestMailboxRouter;
 public class Bootstraper extends UntypedActor {
 	
 	
-	List<ActorRef> routees = new ArrayList<ActorRef>();
+	List<ActorRef> routees = new ArrayList<>();
 	private static String systemName = "Dynamo-mini";
 	ActorRef router;
 	
 	Cluster cluster = Cluster.get(getContext().system());
 	
-    final int numReplicas = 1;
+    final int numReplicas = 3;
     
     // activate the extension
     ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();

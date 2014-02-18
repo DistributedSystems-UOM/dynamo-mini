@@ -4,7 +4,9 @@ import javax.naming.Context;
 import java.io.Serializable;
 
 /**
- * Class Description.
+ * These protocols are used to interact with virtual nodes with each other.
+ * As a examples, replication handling, handling when termination of a virtual node and
+ * handling when a new virtual node added etc.
  *
  * @author: Gihan Karunarathne
  * Date: 1/14/14
@@ -31,30 +33,6 @@ public interface VirtualNodeProtocols {
         private final Object object;
 
         public PutKeyValue(String key, Context context, Object object){
-            this.key = key;
-            this.context = context;
-            this.object = object;
-        }
-
-        public String getKey(){
-            return this.key;
-        }
-
-        public Context getContext(){
-            return this.context;
-        }
-
-        public Object getObjectValue(){
-            return this.object;
-        }
-    }
-
-    public static class StateMachinePutRequest implements Serializable {
-        private final String key;
-        private final Context context;
-        private final Object object;
-
-        public StateMachinePutRequest(String key, Context context, Object object){
             this.key = key;
             this.context = context;
             this.object = object;

@@ -4,7 +4,9 @@ import javax.naming.Context;
 import java.io.Serializable;
 
 /**
- * The protocols to interact with clients. Specially, the two methods of 1. get() and 2. put()
+ * The protocols to interact with clients requests.
+ * These formats are using to send client requests to the virtual nodes in ring.
+ * Specially, the two methods of 1. get() and 2. put()
  *
  * @author: Gihan Karunarathne
  * Date: 1/27/14

@@ -17,8 +17,6 @@ import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.coordination.StateMachine;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
-import akka.dynamo_mini.persistence_engine.MySQL;
-import akka.dynamo_mini.persistence_engine.Persistence;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -28,11 +26,10 @@ import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
 import static akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
 import static akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
-import static akka.dynamo_mini.protocol.VirtualNodeProtocols.StateMachinePutRequest;
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
-    int numReplicas = 3;
+    int numReplicas = 1;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     Cluster cluster = Cluster.get(getContext().system());
@@ -62,9 +59,7 @@ public class VirtualNode extends UntypedActor {
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-        ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
-
-    }
+            }
 
     //re-subscribe when restart
     @Override
@@ -104,7 +99,8 @@ public class VirtualNode extends UntypedActor {
              */
             ActorRef coordinator = ringManager.get(writeRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
-                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
+                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
+                        ringManager.getPreferenceList(writeRequest.getKey())));
                 /**
                  * Send Preference List to the State machine
                  */
@@ -124,10 +120,6 @@ public class VirtualNode extends UntypedActor {
         else if (msg instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
 
-        } else if (msg instanceof StateMachinePutRequest) {
-            StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) msg;
-            Persistence persistence = new MySQL();
-            persistence.get(stateMachinePutRequest.getKey());
         }
         /**************************************************
          * Bootstrap steps
@@ -169,9 +161,14 @@ public class VirtualNode extends UntypedActor {
             ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
             numReplicas = ackJoinToRing.getNumReplicas();
             log.info(nodeName + " got ACK from bootstraper");
+            ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
             ringManager.add(getSelf());
 
-        } else if (msg instanceof CurrentRingNode) {
+        }
+        /**
+         * Details of a virtual node which is already in the ring.
+         */
+        else if (msg instanceof CurrentRingNode) {
             CurrentRingNode currentRingNode = (CurrentRingNode) msg;
             log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName);
             ringManager.add(currentRingNode.getActorRef());
