@@ -4,6 +4,7 @@ import akka.actor.ActorSelection;
 import akka.actor.Address;
 import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
+import akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
 import akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 
@@ -29,6 +30,8 @@ public class DynamoClient extends UntypedActor {
         loadbalancer.tell(writeRequest5, getSelf());
         loadbalancer.tell(writeRequest6, getSelf());
         Thread.sleep(5000);
+        ReadRequest readRequest1 = new ReadRequest("Put:Key-1");
+        loadbalancer.tell(readRequest1,getSelf());
     }
 
     @Override

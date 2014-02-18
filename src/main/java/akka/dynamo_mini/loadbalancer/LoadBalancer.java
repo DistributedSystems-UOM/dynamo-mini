@@ -62,7 +62,7 @@ public class LoadBalancer extends UntypedActor {
         }else if (message instanceof WriteRequest) {
             router.tell(message, getSender());
         } else if (message instanceof ReadRequest) {
-
+            router.tell(message, getSender());
         } else {
             unhandled(message);
         }

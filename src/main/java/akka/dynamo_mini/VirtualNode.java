@@ -81,6 +81,7 @@ public class VirtualNode extends UntypedActor {
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
              */
+            log.info("## "+ nodeName +" - Read Request : Key = " + readRequest.getKey());
             ActorRef coordinator = ringManager.get(readRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
                 ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
