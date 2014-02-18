@@ -1,40 +1,62 @@
 package akka.dynamo_mini.loadbalancer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.cluster.Cluster;
+import akka.cluster.ClusterEvent.MemberUp;
+import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdate;
+import akka.dynamo_mini.protocol.BootstraperProtocols.Test;
+import akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
+import akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.routing.RoundRobinRouter;
+import akka.routing.SmallestMailboxRouter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Class Description.
- *
- * @author: Gihan Karunarathne
- * Date: 1/15/14
- * Time: 12:35 AM
- * @email: gckarunarathne@gmail.com
- * Auto generate get(), put() calls from dynamo-mini.
- * Testing purpose.
+ * 
+ * @author: Gihan Karunarathne Date: 1/15/14 Time: 12:35 AM
+ * @email: gckarunarathne@gmail.com Auto generate get(), put() calls from dynamo-mini. Testing
+ *         purpose.
  */
-public class LoadBalancer extends UntypedActor{
-    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+public class LoadBalancer extends UntypedActor {
 
-    public static Props props(FiniteDuration workTimeout) {
-        return Props.create(LoadBalancer.class, workTimeout);
-    }
+    private List<ActorRef> ringMembers = new ArrayList<ActorRef>();
+    Cluster cluster = Cluster.get(getContext().system());
 
-    public static Props props(ActorRef clusterClient, Props workExecutorProps, FiniteDuration registerInterval) {
-        return Props.create(LoadBalancer.class, clusterClient, workExecutorProps, registerInterval);
-    }
+    ActorRef router;
 
-    public static Props props(ActorRef clusterClient, Props workExecutorProps) {
-        return props(clusterClient, workExecutorProps, Duration.create(10, "seconds"));
+    @Override
+    public void preStart() {
+        System.out.println("************* Load Balancer Started ************");
     }
 
     @Override
-    public void onReceive(Object o) throws Exception {
+    public void onReceive(Object message) throws Exception {
 
+        if (message instanceof LBUpdate) {
+            LBUpdate newNodeMsg = (LBUpdate) message;
+            ringMembers.add(newNodeMsg.getRef());
+            System.out.println(" *** # of nodes in Load Balancer List : " + ringMembers.size());
+            router = getContext().actorOf(
+                    Props.empty().withRouter(SmallestMailboxRouter.create(ringMembers)));
+            router.tell(new Test("** Message from Load Balancer to a node via ROUTER...."),
+                    getSelf());
+        } else if (message instanceof WriteRequest) {
+            router.tell(message, getSender());
+        } else if (message instanceof ReadRequest) {
+
+        } else {
+            unhandled(message);
+        }
     }
 }

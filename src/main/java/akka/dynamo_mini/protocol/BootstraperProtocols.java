@@ -62,6 +62,21 @@ public interface BootstraperProtocols {
         }
     }
 
+    public static class NewNodeConnected implements Serializable {
+    	
+    	private final ActorRef nodeRef;
+    	
+    	public NewNodeConnected(ActorRef refa){
+    		this.nodeRef = refa;
+    	}
+    	
+    	public ActorRef getNodeRef(){
+    		return nodeRef;
+    	}
+
+    	
+    }
+    
     public static class CurrentRingNode implements Serializable {
         private final String nodeName;
         private final ActorRef ref;
@@ -79,4 +94,27 @@ public interface BootstraperProtocols {
             return this.ref;
         }
     }
+
+    public static class Test implements Serializable{
+    	String msg;
+    	public Test(String data){
+    		this.msg = data;
+    	}
+    	
+    	public String getMsg(){
+    		return msg;
+    	}
+    }
+    
+    public static class LBUpdate implements Serializable{
+        ActorRef ref;
+        public LBUpdate(ActorRef ref){
+            this.ref = ref;
+        }
+        
+        public ActorRef getRef(){
+            return ref;
+        }
+    }
+
 }

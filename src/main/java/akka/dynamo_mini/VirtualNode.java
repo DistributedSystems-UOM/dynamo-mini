@@ -45,7 +45,6 @@ public class VirtualNode extends UntypedActor {
      * Store the preference list of other virtual nodes
      */
     ConsistentHash<ActorRef> ringManager;
-
     {
         // subscribe to the topic named "content"
         mediator.tell(new DistributedPubSubMediator.Subscribe("dynamo_mini_bootstraper", getSelf()), getSelf());
@@ -61,8 +60,8 @@ public class VirtualNode extends UntypedActor {
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-
         ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
+        
     }
 
     //re-subscribe when restart
@@ -94,6 +93,7 @@ public class VirtualNode extends UntypedActor {
             }
         } else if (msg instanceof WriteRequest) {
             WriteRequest writeRequest = (WriteRequest) msg;
+            System.out.println(nodeName+" # Write Request -- ( " + writeRequest.getKey() +","+ writeRequest.getObjectValue()+" )");
             /**
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
@@ -173,7 +173,13 @@ public class VirtualNode extends UntypedActor {
                 getContext().stop(getSelf());
             }
 
-        } else {
+        } else if( msg instanceof Test){
+        	
+        	Test data = (Test)msg;
+        	
+        	System.out.println("Actor : "+nodeName+" message: "+data.getMsg());
+        	
+        }else {
             unhandled(msg);
         }
 
