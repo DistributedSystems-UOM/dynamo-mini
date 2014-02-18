@@ -1,6 +1,5 @@
 package akka.dynamo_mini.protocol;
 
-import javax.naming.Context;
 import java.io.Serializable;
 
 /**
@@ -51,15 +50,21 @@ public interface VirtualNodeProtocols {
         }
     }
 
-    public static class KeyValue implements Serializable{
+    public static class ResultsValue implements Serializable{
         private final Object newObject;
+        private final Context context;
 
-        public KeyValue(Object newObject){
+        public ResultsValue(Object newObject, Context context){
             this.newObject = newObject;
+            this.context = context;
         }
 
         public Object getNewObject(){
             return this.newObject;
+        }
+
+        public Context getContext(){
+            return this.context;
         }
     }
 

@@ -6,17 +6,19 @@ import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
 import akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
-import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 
 public class DynamoClient extends UntypedActor {
-
+    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
     Cluster cluster = Cluster.get(getContext().system());
     Address address = cluster.selfAddress();
     ActorSelection loadbalancer = getContext().actorSelection(
             address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
 
     @Override
-    public void preStart() throws Exception{
+    public void preStart() throws Exception {
         WriteRequest writeRequest1 = new WriteRequest("Put:Key-1", null, "Put:Object-1");
         WriteRequest writeRequest2 = new WriteRequest("Put:Key-2", null, "Put:Object-2");
         WriteRequest writeRequest3 = new WriteRequest("Put:Key-3", null, "Put:Object-3");
@@ -31,15 +33,16 @@ public class DynamoClient extends UntypedActor {
         loadbalancer.tell(writeRequest6, getSelf());
         Thread.sleep(5000);
         ReadRequest readRequest1 = new ReadRequest("Put:Key-1");
-        loadbalancer.tell(readRequest1,getSelf());
+        loadbalancer.tell(readRequest1, getSelf());
     }
 
     @Override
-    public void onReceive(Object message) throws Exception {
-        if (message instanceof String) {
-            System.out.println("Dynamo Client : " + message);
+    public void onReceive(Object msg) throws Exception {
+        if (msg instanceof ResultsValue) {
+            ResultsValue readRequest = (ResultsValue) msg;
+            log.info("Get results as " + readRequest.getNewObject());
         } else {
-            unhandled(message);
+            unhandled(msg);
         }
     }
 

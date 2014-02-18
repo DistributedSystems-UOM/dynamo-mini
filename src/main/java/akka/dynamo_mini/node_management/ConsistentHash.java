@@ -58,14 +58,14 @@ public class ConsistentHash<T> {
             // Using iterator in SortedMap
             Iterator i = s.iterator();
             int cnt = 0;
-            System.out.println("### replicas " + numberOfReplicas);
+            // System.out.println("### replicas " + numberOfReplicas);
             while (i.hasNext() && ++cnt < numberOfReplicas) {
                 Map.Entry m = (Map.Entry) i.next();
 
                 preferenceList.add((T) m.getValue());
             }
         }
-        printRing();
+        // printRing();
         return preferenceList;
     }
 

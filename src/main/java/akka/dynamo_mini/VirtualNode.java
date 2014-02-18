@@ -17,7 +17,13 @@ import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.coordination.StateMachine;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
-import akka.dynamo_mini.protocol.StateMachineProtocols.*;
+import akka.dynamo_mini.persistence_engine.Memory;
+import akka.dynamo_mini.persistence_engine.Persistence;
+import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
+import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -26,7 +32,6 @@ import java.util.ArrayList;
 import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
 import static akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
-import static akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
@@ -38,7 +43,7 @@ public class VirtualNode extends UntypedActor {
     ActorSelection bootstraper;
     boolean isBootstraperUp = false;
     private ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
-
+    private Persistence localDB;
     /**
      * Store the preference list of other virtual nodes
      */
@@ -60,7 +65,8 @@ public class VirtualNode extends UntypedActor {
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-        ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
+        this.ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
+        this.localDB = new Memory();
     }
 
     //re-subscribe when restart
@@ -75,9 +81,11 @@ public class VirtualNode extends UntypedActor {
          * Read write requests form the state machines
          *****************************************************/
         if (msg instanceof QuorumReadRequest) {
-
+            QuorumReadRequest quorumReadRequest = (QuorumReadRequest) msg;
+            getSender().tell(new ResultsValue(localDB.get(quorumReadRequest.getKey()), null), getSelf());
         } else if (msg instanceof QuorumWriteRequest) {
-
+            QuorumWriteRequest quorumWriteRequest = (QuorumWriteRequest) msg;
+            getSender().tell(new ResultsValue(localDB.put(quorumWriteRequest.getKey(), quorumWriteRequest.getObject()), null), getSelf());
         }
         /*****************************************************
          * Client Requests to the Coordinator
@@ -89,14 +97,15 @@ public class VirtualNode extends UntypedActor {
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
              */
-            log.info("## "+ nodeName +" - Read Request : Key = " + readRequest.getKey());
+            log.info("## " + nodeName + " - Read Request : Key = " + readRequest.getKey());
             ActorRef coordinator = ringManager.get(readRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
-                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
+                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
+                        ringManager.getPreferenceList(readRequest.getKey()), localDB));
                 /**
                  * Send Preference List to the State machine
                  */
-
+                stateMachine.forward(new GetKeyValue(readRequest.getKey()), getContext());
             } else {
                 log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
@@ -111,11 +120,11 @@ public class VirtualNode extends UntypedActor {
             ActorRef coordinator = ringManager.get(writeRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
                 ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
-                        ringManager.getPreferenceList(writeRequest.getKey())));
+                        ringManager.getPreferenceList(writeRequest.getKey()), localDB));
                 /**
                  * Send Preference List to the State machine
                  */
-
+                stateMachine.forward(new PutKeyValue(writeRequest.getKey(), null, writeRequest.getObjectValue()), getContext());
             } else {
                 log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());

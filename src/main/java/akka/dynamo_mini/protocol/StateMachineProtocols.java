@@ -28,13 +28,19 @@ public interface StateMachineProtocols {
 
     public static class QuorumWriteRequest implements Serializable {
         private final String key;
+        private final Object object;
 
-        public QuorumWriteRequest(String key) {
+        public QuorumWriteRequest(String key, Object object) {
             this.key = key;
+            this.object = object;
         }
 
         public String getKey() {
             return this.key;
+        }
+
+        public Object getObject(){
+            return this.object;
         }
     }
 }

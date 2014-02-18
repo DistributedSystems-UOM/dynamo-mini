@@ -1,9 +1,5 @@
 package akka.dynamo_mini.persistence_engine;
 
-import akka.dynamo_mini.protocol.VirtualNodeProtocols;
-import akka.dynamo_mini.protocol.VirtualNodeProtocols.KeyValue;
-
-import java.util.Hashtable;
 import java.util.TreeMap;
 
 /**
@@ -20,15 +16,20 @@ public class Memory<T> implements Persistence<T> {
     @Override
     public T put(T key, T value) {
         String k = (String) key;
-        T put = values.put(k, value);
-        return put;
+        T putValue = values.put(k, value);
+        return putValue;
     }
 
     @Override
     public T get(T key) {
-        //return new KeyValue(values.get(key));
+        return values.get(key);
+    }
+
+    public T moveData(T startKey, T endKey) {
         return null;
     }
 
-
+    public T copyData(T startKey, T endKey) {
+        return null;
+    }
 }

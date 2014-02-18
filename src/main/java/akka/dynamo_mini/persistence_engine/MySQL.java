@@ -21,4 +21,14 @@ public class MySQL<T> implements Persistence<T>{
     public T get(T key) {
         return null;
     }
+
+    @Override
+    public T moveData(T startKey, T endKey) {
+        return null;
+    }
+
+    @Override
+    public T copyData(T startKey, T endKey) {
+        return null;
+    }
 }
