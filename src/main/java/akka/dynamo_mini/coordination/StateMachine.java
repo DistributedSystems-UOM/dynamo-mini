@@ -39,9 +39,9 @@ public class StateMachine extends UntypedActor {
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof QuorumReadRequest) {
+             QuorumReadRequest readRequest = (QuorumReadRequest) msg;
 
-
-        } else if (msg instanceof QuorumReadRequest) {
+        } else if (msg instanceof QuorumWriteRequest) {
 
 
         }

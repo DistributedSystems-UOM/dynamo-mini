@@ -1,7 +1,7 @@
 package akka.dynamo_mini;
 
 /**
- * Class Description.
+ * Implementation of virtual node in Amazon Dynamo research paper.
  *
  * @author: Gihan Karunarathne
  * Date: 1/4/14
@@ -17,6 +17,7 @@ import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.coordination.StateMachine;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
+import akka.dynamo_mini.protocol.StateMachineProtocols.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -70,6 +71,14 @@ public class VirtualNode extends UntypedActor {
     @Override
     public void onReceive(Object msg) {
         /*****************************************************
+         * Read write requests form the state machines
+         *****************************************************/
+        if(msg instanceof QuorumReadRequest){
+
+        } else if(msg instanceof QuorumWriteRequest){
+
+        }
+        /*****************************************************
          * Client Requests to the Coordinator
          *****************************************************/
         if (msg instanceof ReadRequest) { // most frequent request
@@ -104,11 +113,7 @@ public class VirtualNode extends UntypedActor {
                 /**
                  * Send Preference List to the State machine
                  */
-                ArrayList list = ringManager.getPreferenceList(writeRequest.getKey());
-                for (int i = 0; i < list.size(); i++) {
-                    ActorRef ref = (ActorRef) list.get(i);
-                    log.info(i + " " + ref.path().name());
-                }
+
             } else {
                 log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
