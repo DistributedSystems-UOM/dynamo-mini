@@ -30,7 +30,7 @@ import static akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
-    int numReplicas = 1;
+    int numReplicas = Commons.numReplicas;
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     Cluster cluster = Cluster.get(getContext().system());
@@ -60,7 +60,8 @@ public class VirtualNode extends UntypedActor {
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-            }
+        ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
+    }
 
     //re-subscribe when restart
     @Override
@@ -73,9 +74,9 @@ public class VirtualNode extends UntypedActor {
         /*****************************************************
          * Read write requests form the state machines
          *****************************************************/
-        if(msg instanceof QuorumReadRequest){
+        if (msg instanceof QuorumReadRequest) {
 
-        } else if(msg instanceof QuorumWriteRequest){
+        } else if (msg instanceof QuorumWriteRequest) {
 
         }
         /*****************************************************
@@ -166,7 +167,6 @@ public class VirtualNode extends UntypedActor {
             ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
             numReplicas = ackJoinToRing.getNumReplicas();
             log.info(nodeName + " got ACK from bootstraper");
-            ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
             ringManager.add(getSelf());
 
         }

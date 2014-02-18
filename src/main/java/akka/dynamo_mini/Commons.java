@@ -9,5 +9,7 @@ package akka.dynamo_mini;
  * @email: gckarunarathne@gmail.com
  */
 public class Commons {
-
+    public static final int numReplicas = 3;
+    public static final int R = 3;
+    public static final int W = 1;
 }

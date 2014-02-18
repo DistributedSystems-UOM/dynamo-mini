@@ -11,14 +11,14 @@ import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
  * Time: 12:48 AM
  * @email: gckarunarathne@gmail.com
  */
-public class MySQL implements Persistence{
+public class MySQL<T> implements Persistence<T>{
     @Override
-    public KeyValue put(String key, KeyValue value) {
+    public T put(T key, T value) {
         return null;
     }
 
     @Override
-    public KeyValue get(String key) {
+    public T get(T key) {
         return null;
     }
 }

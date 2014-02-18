@@ -28,7 +28,7 @@ public class Dynamo {
         startDynamoRing(joinAddress);
         Thread.sleep(5000);
         createClient(system);
-        
+
     }
 
     private static String systemName = "Dynamo-mini";

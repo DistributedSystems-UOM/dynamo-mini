@@ -13,6 +13,7 @@ import akka.actor.UntypedActor;
 import akka.cluster.Cluster;
 import akka.contrib.pattern.DistributedPubSubExtension;
 import akka.contrib.pattern.DistributedPubSubMediator;
+import akka.dynamo_mini.Commons;
 import akka.dynamo_mini.protocol.BootstraperProtocols.ACKJoinToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.AddNewNodeToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.JoinToRing;
@@ -51,7 +52,7 @@ public class Bootstraper extends UntypedActor {
 	
 	Cluster cluster = Cluster.get(getContext().system());
 	
-    final int numReplicas = 3;
+    final int numReplicas = Commons.numReplicas;
     
     // activate the extension
     ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
