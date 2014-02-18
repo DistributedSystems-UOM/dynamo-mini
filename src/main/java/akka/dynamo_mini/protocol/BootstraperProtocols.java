@@ -105,5 +105,16 @@ public interface BootstraperProtocols {
     		return msg;
     	}
     }
+    
+    public static class LBUpdate implements Serializable{
+        ActorRef ref;
+        public LBUpdate(ActorRef ref){
+            this.ref = ref;
+        }
+        
+        public ActorRef getRef(){
+            return ref;
+        }
+    }
 
 }

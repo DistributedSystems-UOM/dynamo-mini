@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.actor.Identify;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.cluster.Cluster;
 import akka.contrib.pattern.DistributedPubSubExtension;
 import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.protocol.BootstraperProtocols.ACKJoinToRing;
@@ -15,6 +18,7 @@ import akka.dynamo_mini.protocol.BootstraperProtocols.AddNewNodeToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.JoinToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.NewNodeConnected;
 import akka.dynamo_mini.protocol.BootstraperProtocols.Test;
+import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdate;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRouter;
@@ -38,6 +42,8 @@ public class Bootstraper extends UntypedActor {
 	List<ActorRef> routees = new ArrayList<ActorRef>();
 	private static String systemName = "Dynamo-mini";
 	ActorRef router;
+	
+	Cluster cluster = Cluster.get(getContext().system());
 	
     final int numReplicas = 1;
     
@@ -66,6 +72,9 @@ public class Bootstraper extends UntypedActor {
             mediator.tell(new DistributedPubSubMediator.Publish("dynamo_mini_bootstraper",
                     new AddNewNodeToRing(joinToRing.getNodeName(), getSender())), getSelf());
             getSender().tell(new ACKJoinToRing(joinToRing.getNodeName(), numReplicas), getSelf());
+            Address address = cluster.selfAddress();
+            ActorSelection loadbalancer = getContext().actorSelection(address.protocol() + "://" +address.hostPort() + "/user/loadbalancer");
+            loadbalancer.tell(new LBUpdate(getSender()), getSelf());
             
         } else if (msg instanceof Test) {
         	
@@ -78,7 +87,7 @@ public class Bootstraper extends UntypedActor {
         	routees.add(getSender());
         	reinitiateRouter();
         	System.out.println("new node connected.. to Bootstraper");
-    	
+        	
         }
         else {
             
