@@ -73,7 +73,8 @@ public class Bootstraper extends UntypedActor {
                     new AddNewNodeToRing(joinToRing.getNodeName(), getSender())), getSelf());
             getSender().tell(new ACKJoinToRing(joinToRing.getNodeName(), numReplicas), getSelf());
             Address address = cluster.selfAddress();
-            ActorSelection loadbalancer = getContext().actorSelection(address.protocol() + "://" +address.hostPort() + "/user/loadbalancer");
+            ActorSelection loadbalancer = getContext().actorSelection(
+                    address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
             loadbalancer.tell(new LBUpdate(getSender()), getSelf());
             
         } else if (msg instanceof Test) {
@@ -84,8 +85,8 @@ public class Bootstraper extends UntypedActor {
         }else if (msg instanceof NewNodeConnected){
         	
         	NewNodeConnected nnc = (NewNodeConnected) msg;
-        	routees.add(getSender());
-        	reinitiateRouter();
+        	//routees.add(getSender());
+        	//reinitiateRouter();
         	System.out.println("new node connected.. to Bootstraper");
         	
         }

@@ -75,6 +75,7 @@ public class VirtualNode extends UntypedActor {
          *****************************************************/
         if (msg instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
+            System.out.println(nodeName+" # Put Request -- ( " + putKeyValue.getKey() +","+ putKeyValue.getObjectValue()+" )");
 
         } else if (msg instanceof StateMachinePutRequest) {
             StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) msg;

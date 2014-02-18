@@ -10,6 +10,8 @@ import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.MemberUp;
 import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdate;
 import akka.dynamo_mini.protocol.BootstraperProtocols.Test;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRouter;
@@ -37,28 +39,26 @@ public class LoadBalancer extends UntypedActor{
 	 @Override
 	 public void preStart() {
 	     System.out.println("************* Load Balancer Started ************");
-		 cluster.subscribe(getSelf(), MemberUp.class);
 	 }
 	
 	@Override
 	public void onReceive(Object message) throws Exception {
-		// TODO Auto-generated method stub
 		
-		if (message instanceof MemberUp) {
-				
-			  System.out.println("Member got added");
-		      //ringMembers.add(getSender());
-		 
-		} 
-		else if(message instanceof LBUpdate){
+		if(message instanceof LBUpdate){
 		    LBUpdate newNodeMsg = (LBUpdate) message;
 		    ringMembers.add(newNodeMsg.getRef());
 		    System.out.println(" *** # of nodes in Load Balancer List : " + ringMembers.size());
 		    router = getContext().actorOf(Props.empty().withRouter(SmallestMailboxRouter.create(ringMembers)));
 		    router.tell(new Test("** Message from ROUTER...."), getSelf());
 		}
+		else if(message instanceof PutKeyValue){
+		    router.tell(message, getSender());
+		}
+		else if(message instanceof GetKeyValue){
+		    
+		}
 		else {
 		      unhandled(message);
-		 }	
+		}	
 	}
 }
