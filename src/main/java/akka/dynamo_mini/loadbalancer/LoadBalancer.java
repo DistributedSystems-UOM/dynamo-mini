@@ -13,6 +13,7 @@ import akka.dynamo_mini.protocol.BootstraperProtocols.Test;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRouter;
+import akka.routing.SmallestMailboxRouter;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -37,8 +38,6 @@ public class LoadBalancer extends UntypedActor{
 	 public void preStart() {
 	     System.out.println("************* Load Balancer Started ************");
 		 cluster.subscribe(getSelf(), MemberUp.class);
-		 
-		 
 	 }
 	
 	@Override
@@ -50,25 +49,16 @@ public class LoadBalancer extends UntypedActor{
 			  System.out.println("Member got added");
 		      //ringMembers.add(getSender());
 		 
-		 } 
+		} 
 		else if(message instanceof LBUpdate){
 		    LBUpdate newNodeMsg = (LBUpdate) message;
 		    ringMembers.add(newNodeMsg.getRef());
 		    System.out.println(" *** # of nodes in Load Balancer List : " + ringMembers.size());
-		    router = getContext().actorOf(Props.empty().withRouter(RoundRobinRouter.create(ringMembers)));
-		    router.tell(new Test("** Sending message to a node from ROUTER...."), getSelf());
-		    
+		    router = getContext().actorOf(Props.empty().withRouter(SmallestMailboxRouter.create(ringMembers)));
+		    router.tell(new Test("** Message from ROUTER...."), getSelf());
 		}
 		else {
 		      unhandled(message);
-		 }
-		
+		 }	
 	}
-	
-	
-	
-	
-	
-	
-   
 }
