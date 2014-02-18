@@ -1,7 +1,7 @@
 package akka.dynamo_mini;
 
 /**
- * Class Description.
+ * Implementation of virtual node in Amazon Dynamo research paper.
  *
  * @author: Gihan Karunarathne
  * Date: 1/4/14
@@ -17,8 +17,7 @@ import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.coordination.StateMachine;
 import akka.dynamo_mini.node_management.ConsistentHash;
 import akka.dynamo_mini.node_management.HashFunction;
-import akka.dynamo_mini.persistence_engine.MySQL;
-import akka.dynamo_mini.persistence_engine.Persistence;
+import akka.dynamo_mini.protocol.StateMachineProtocols.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -28,7 +27,6 @@ import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
 import static akka.dynamo_mini.protocol.ClientProtocols.WriteRequest;
 import static akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
-import static akka.dynamo_mini.protocol.VirtualNodeProtocols.StateMachinePutRequest;
 
 public class VirtualNode extends UntypedActor {
     String nodeName = "";
@@ -45,6 +43,8 @@ public class VirtualNode extends UntypedActor {
      * Store the preference list of other virtual nodes
      */
     ConsistentHash<ActorRef> ringManager;
+
+
     {
         // subscribe to the topic named "content"
         mediator.tell(new DistributedPubSubMediator.Subscribe("dynamo_mini_bootstraper", getSelf()), getSelf());
@@ -60,9 +60,7 @@ public class VirtualNode extends UntypedActor {
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
         bootstraper.tell(new Identify(nodeName), virtualNode);
-        ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
-        
-    }
+            }
 
     //re-subscribe when restart
     @Override
@@ -73,10 +71,19 @@ public class VirtualNode extends UntypedActor {
     @Override
     public void onReceive(Object msg) {
         /*****************************************************
+         * Read write requests form the state machines
+         *****************************************************/
+        if(msg instanceof QuorumReadRequest){
+
+        } else if(msg instanceof QuorumWriteRequest){
+
+        }
+        /*****************************************************
          * Client Requests to the Coordinator
          *****************************************************/
         if (msg instanceof ReadRequest) { // most frequent request
             ReadRequest readRequest = (ReadRequest) msg;
+            log.info("Read Request -- ( " + readRequest.getKey() + ")");
             /**
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
@@ -90,23 +97,26 @@ public class VirtualNode extends UntypedActor {
                  */
 
             } else {
+                log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
             }
         } else if (msg instanceof WriteRequest) {
             WriteRequest writeRequest = (WriteRequest) msg;
-            System.out.println(nodeName+" # Write Request -- ( " + writeRequest.getKey() +","+ writeRequest.getObjectValue()+" )");
+            log.info("Write Request -- ( " + writeRequest.getKey() + "," + writeRequest.getObjectValue() + " )");
             /**
              * If this is the node responsible for handling the request, then process.
              * Otherwise forward to the relevant node (coordinator).
              */
             ActorRef coordinator = ringManager.get(writeRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
-                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class));
+                ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
+                        ringManager.getPreferenceList(writeRequest.getKey())));
                 /**
                  * Send Preference List to the State machine
                  */
 
             } else {
+                log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
                 coordinator.forward(msg, getContext());
             }
         }
@@ -116,15 +126,11 @@ public class VirtualNode extends UntypedActor {
         else if (msg instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
 
-        } else if (msg instanceof StateMachinePutRequest) {
-            StateMachinePutRequest stateMachinePutRequest = (StateMachinePutRequest) msg;
-            Persistence persistence = new MySQL();
-            persistence.get(stateMachinePutRequest.getKey());
-
-            /**************************************************
-             * Bootstrap steps
-             **************************************************/
-        } else if (msg instanceof DistributedPubSubMediator.SubscribeAck) {
+        }
+        /**************************************************
+         * Bootstrap steps
+         **************************************************/
+        else if (msg instanceof DistributedPubSubMediator.SubscribeAck) {
             log.info("subscribing " + nodeName);
             // Bootstraper is running. Ask to send join to ring to current virtual nodes in the ring.
             log.info("Ask for join to the ring from bootstraper");
@@ -161,26 +167,33 @@ public class VirtualNode extends UntypedActor {
             ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
             numReplicas = ackJoinToRing.getNumReplicas();
             log.info(nodeName + " got ACK from bootstraper");
+            ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
             ringManager.add(getSelf());
 
-        } else if (msg instanceof CurrentRingNode) {
+        }
+        /**
+         * Details of a virtual node which is already in the ring.
+         */
+        else if (msg instanceof CurrentRingNode) {
             CurrentRingNode currentRingNode = (CurrentRingNode) msg;
             log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName);
             ringManager.add(currentRingNode.getActorRef());
 
         } else if (msg instanceof Terminated) {
             final Terminated t = (Terminated) msg;
+            ActorRef actor = t.getActor();
+            log.info("Actor: " + actor.path() + " terminated. Detect by VN: " + nodeName);
             if (t.getActor().equals(bootstraperRef)) {
                 getContext().stop(getSelf());
             }
 
-        } else if( msg instanceof Test){
-        	
-        	Test data = (Test)msg;
-        	
-        	System.out.println("Actor : "+nodeName+" message: "+data.getMsg());
-        	
-        }else {
+        } else if (msg instanceof Test) {
+
+            Test data = (Test) msg;
+
+            System.out.println("Actor : " + nodeName + " message: " + data.getMsg());
+
+        } else {
             unhandled(msg);
         }
 

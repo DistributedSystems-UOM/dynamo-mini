@@ -1,7 +1,7 @@
 package akka.dynamo_mini;
 
 /**
- * Class Description.
+ * This class may provide default settings for the dynamo-mini data storage.
  *
  * @author: Gihan Karunarathne
  * Date: 1/12/14

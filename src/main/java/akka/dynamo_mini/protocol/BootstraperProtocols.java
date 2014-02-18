@@ -5,7 +5,10 @@ import akka.actor.ActorRef;
 import java.io.Serializable;
 
 /**
- * Class Description.
+ * These protocols are used to interaction with virtual nodes and bootstraper,
+ * introduce a new node to the ring and remove a virtual node etc.
+ *
+ * Other than that, it contains registering virtual nodes in the Load Balancer.
  *
  * @author: Gihan Karunarathne
  * Date: 1/20/14
