@@ -16,9 +16,11 @@ import akka.contrib.pattern.DistributedPubSubMediator;
 import akka.dynamo_mini.protocol.BootstraperProtocols.ACKJoinToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.AddNewNodeToRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.JoinToRing;
+import akka.dynamo_mini.protocol.BootstraperProtocols.LeaveRing;
 import akka.dynamo_mini.protocol.BootstraperProtocols.NewNodeConnected;
 import akka.dynamo_mini.protocol.BootstraperProtocols.Test;
-import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdate;
+import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdateAdd;
+import akka.dynamo_mini.protocol.BootstraperProtocols.LBUpdateRemove;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.routing.RoundRobinRouter;
@@ -50,7 +52,9 @@ public class Bootstraper extends UntypedActor {
 	ActorRef router;
 	
 	Cluster cluster = Cluster.get(getContext().system());
-	
+	Address address = cluster.selfAddress();
+    ActorSelection loadbalancer = getContext().actorSelection(
+            address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
     final int numReplicas = 1;
     
     // activate the extension
@@ -78,12 +82,16 @@ public class Bootstraper extends UntypedActor {
             mediator.tell(new DistributedPubSubMediator.Publish("dynamo_mini_bootstraper",
                     new AddNewNodeToRing(joinToRing.getNodeName(), getSender())), getSelf());
             getSender().tell(new ACKJoinToRing(joinToRing.getNodeName(), numReplicas), getSelf());
-            Address address = cluster.selfAddress();
-            ActorSelection loadbalancer = getContext().actorSelection(
-                    address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
-            loadbalancer.tell(new LBUpdate(getSender()), getSelf());
+            loadbalancer.tell(new LBUpdateAdd(getSender()), getSelf());
             
-        } else if (msg instanceof Test) {
+        }else if(msg instanceof LeaveRing){
+            
+            //Code to remove the node from dynamo ring
+            
+            
+            LeaveRing leaveRing = (LeaveRing) msg;
+            loadbalancer.tell(new LBUpdateRemove(getSender()),getSelf());
+        }else if (msg instanceof Test) {
         	
             System.out.println("Bootstraper got the message");
         	router.tell(msg, getSender());
@@ -95,8 +103,7 @@ public class Bootstraper extends UntypedActor {
         	//reinitiateRouter();
         	System.out.println("new node connected.. to Bootstraper");
         	
-        }
-        else {
+        }else {
             
             unhandled(msg);
         }

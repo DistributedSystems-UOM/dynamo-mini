@@ -15,7 +15,7 @@ public class DynamoClient extends UntypedActor {
             address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
 
     @Override
-    public void preStart() {
+    public void preStart() throws Exception{
         WriteRequest writeRequest1 = new WriteRequest("Put:Key-1", null, "Put:Object-1");
         WriteRequest writeRequest2 = new WriteRequest("Put:Key-2", null, "Put:Object-2");
         WriteRequest writeRequest3 = new WriteRequest("Put:Key-3", null, "Put:Object-3");
@@ -23,6 +23,12 @@ public class DynamoClient extends UntypedActor {
         WriteRequest writeRequest5 = new WriteRequest("Put:Key-5", null, "Put:Object-5");
         WriteRequest writeRequest6 = new WriteRequest("Put:Key-6", null, "Put:Object-6");
         loadbalancer.tell(writeRequest1, getSelf());
+        loadbalancer.tell(writeRequest2, getSelf());
+        loadbalancer.tell(writeRequest3, getSelf());
+        loadbalancer.tell(writeRequest4, getSelf());
+        loadbalancer.tell(writeRequest5, getSelf());
+        loadbalancer.tell(writeRequest6, getSelf());
+        Thread.sleep(5000);
     }
 
     @Override

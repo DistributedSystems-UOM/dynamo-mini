@@ -36,7 +36,7 @@ public class ConsistentHash<T> {
             return null;
         }
         int hash = hashFunction.hash(key);
-        System.out.println("GET : "+hash);
+        //System.out.println("GET : "+hash);
         if (!ring.containsKey(hash)) {
             SortedMap<Integer, T> tailMap = ring.tailMap(hash);
             hash = tailMap.isEmpty() ? ring.firstKey() : tailMap.firstKey();

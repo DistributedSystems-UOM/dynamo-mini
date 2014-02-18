@@ -25,6 +25,18 @@ public interface BootstraperProtocols {
             return this.nodeName;
         }
     }
+    
+    public static class LeaveRing implements Serializable{
+        private final String nodeName;
+
+        public LeaveRing(String key) {
+            this.nodeName = key;
+        }
+
+        public String getNodeName() {
+            return this.nodeName;
+        }
+    }
 
     public static class AddNewNodeToRing implements Serializable {
         private final String nodeName;
@@ -106,9 +118,20 @@ public interface BootstraperProtocols {
     	}
     }
     
-    public static class LBUpdate implements Serializable{
+    public static class LBUpdateAdd implements Serializable{
         ActorRef ref;
-        public LBUpdate(ActorRef ref){
+        public LBUpdateAdd(ActorRef ref){
+            this.ref = ref;
+        }
+        
+        public ActorRef getRef(){
+            return ref;
+        }
+    }
+    
+    public static class LBUpdateRemove implements Serializable{
+        ActorRef ref;
+        public LBUpdateRemove(ActorRef ref){
             this.ref = ref;
         }
         
