@@ -23,10 +23,10 @@ public class Dynamo {
          */
         system = ActorSystem.create(systemName);
         Address joinAddress = Cluster.get(system).selfAddress();
-        Thread.sleep(5000);
+        Thread.sleep(1000);
         startLoadBalancer(system, joinAddress);
         startDynamoRing(joinAddress);
-        Thread.sleep(5000);
+        Thread.sleep(1000);
         createClient(system);
 
     }
@@ -43,11 +43,12 @@ public class Dynamo {
         Cluster.get(system).join(joinAddress);
 
         bootstraper = system.actorOf(Props.create(Bootstraper.class), "bootstraper");
-        Thread.sleep(5000);
+        Thread.sleep(1000);
 
         for(int i=1; i < 8 ; i++){ // Start Number of Virtual Nodes
             String nodeName = "node" + i;
             system.actorOf(Props.create(VirtualNode.class), nodeName);
+            Thread.sleep(500);
         }
     }
     

@@ -31,7 +31,7 @@ public class DynamoClient extends UntypedActor {
         loadbalancer.tell(writeRequest4, getSelf());
         loadbalancer.tell(writeRequest5, getSelf());
         loadbalancer.tell(writeRequest6, getSelf());
-        Thread.sleep(5000);
+        Thread.sleep(500);
         ReadRequest readRequest1 = new ReadRequest("Put:Key-1");
         loadbalancer.tell(readRequest1, getSelf());
     }

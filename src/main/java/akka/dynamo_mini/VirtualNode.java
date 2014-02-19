@@ -152,6 +152,7 @@ public class VirtualNode extends UntypedActor {
         } else if (msg instanceof AddNewNodeToRing) {
             AddNewNodeToRing addNewNodeToRing = (AddNewNodeToRing) msg;
             ringManager.add(addNewNodeToRing.getActorRef());
+            this.addNewNodeHandle(addNewNodeToRing.getActorRef());
 
             /**
              * Send own details to the new node
@@ -209,41 +210,7 @@ public class VirtualNode extends UntypedActor {
             unhandled(msg);
         }
 
-        /*if (msg instanceof TransformationJob) {
-            TransformationJob job = (TransformationJob) msg;
-            getSender()
-                    .tell(new TransformationResult(job.getText().toUpperCase()),
-                            getSelf());
-
-        } else if (msg instanceof CurrentClusterState) {
-            CurrentClusterState state = (CurrentClusterState) msg;
-            for (Member member : state.getMembers()) {
-                if (member.status().equals(MemberStatus.up())) {
-                    register(member);
-                }
-            }
-
-        } else if (msg instanceof MemberUp) {
-            MemberUp mUp = (MemberUp) msg;
-            register(mUp.member());
-
-        } else {
-            unhandled(msg);
-        }
-
-        if ((msg instanceof TransformationJob) && backends.isEmpty()) {
-            TransformationJob job = (TransformationJob) msg;
-            getSender().tell(
-                    new JobFailed("Service unavailable, try again later", job),
-                    getSender());
-
-        } else if (msg instanceof TransformationJob) {
-            TransformationJob job = (TransformationJob) msg;
-            jobCounter++;
-            backends.get(jobCounter % backends.size())
-                    .forward(job, getContext());
-
-        } else if (msg.equals(BACKEND_REGISTRATION)) {
+        /**else if (msg.equals(BACKEND_REGISTRATION)) {
             getContext().watch(getSender());
             backends.add(getSender());
 
@@ -254,6 +221,14 @@ public class VirtualNode extends UntypedActor {
         } else {
             unhandled(msg);
         }*/
+    }
+
+    private void addNewNodeHandle(ActorRef newNode){
+
+    }
+
+    private void removeNewNodeHandle(ActorRef rmNode){
+
     }
 
 }
