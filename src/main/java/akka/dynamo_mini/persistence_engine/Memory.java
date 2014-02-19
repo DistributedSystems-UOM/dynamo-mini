@@ -17,10 +17,12 @@ public class Memory<T> implements Persistence<T> {
     private TreeMap<Integer, T> values = new TreeMap<>();
 
     @Override
-    public T put(T key, T value) {
+    public boolean put(T key, T value) {
         int k = hashFunction.hash((String) key);
-        T putValue = values.put(k, value);
-        return putValue;
+        values.put(k, value);
+        if (values.get(k) == value)
+            return true;
+        else return false;
     }
 
     @Override

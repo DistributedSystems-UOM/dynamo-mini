@@ -21,6 +21,7 @@ import akka.dynamo_mini.persistence_engine.Memory;
 import akka.dynamo_mini.persistence_engine.Persistence;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
@@ -85,7 +86,7 @@ public class VirtualNode extends UntypedActor {
             getSender().tell(new ResultsValue(localDB.get(quorumReadRequest.getKey()), null), getSelf());
         } else if (msg instanceof QuorumWriteRequest) {
             QuorumWriteRequest quorumWriteRequest = (QuorumWriteRequest) msg;
-            getSender().tell(new ResultsValue(localDB.put(quorumWriteRequest.getKey(), quorumWriteRequest.getObject()), null), getSelf());
+            getSender().tell(new AckToWrite(localDB.put(quorumWriteRequest.getKey(), quorumWriteRequest.getObject()), null), getSelf());
         }
         /*****************************************************
          * Client Requests to the Coordinator

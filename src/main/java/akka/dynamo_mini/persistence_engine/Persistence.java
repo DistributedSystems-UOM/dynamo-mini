@@ -19,7 +19,7 @@ public interface Persistence<T> {
      * @param value value to be store
      * @return send object version which is stored
      */
-    public T put(T key, T value);
+    public boolean put(T key, T value);
 
     /**
      * Get a value from the virtual node's storage.

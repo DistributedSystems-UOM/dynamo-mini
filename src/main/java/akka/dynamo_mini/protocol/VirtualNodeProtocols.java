@@ -68,5 +68,23 @@ public interface VirtualNodeProtocols {
         }
     }
 
+    public static class AckToWrite implements Serializable{
+        private final boolean newObject;
+        private final Context context;
+
+        public AckToWrite(boolean newObject, Context context){
+            this.newObject = newObject;
+            this.context = context;
+        }
+
+        public boolean isSuccess(){
+            return this.newObject;
+        }
+
+        public Context getContext(){
+            return this.context;
+        }
+    }
+
     public static final String BACKEND_REGISTRATION = "BackendRegistration";
 }

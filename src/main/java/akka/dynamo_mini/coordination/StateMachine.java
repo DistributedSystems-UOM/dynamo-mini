@@ -3,10 +3,12 @@ package akka.dynamo_mini.coordination;
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.dynamo_mini.persistence_engine.Persistence;
-import akka.dynamo_mini.protocol.StateMachineProtocols.*;
-import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
+import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
+import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.AckToWrite;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
@@ -23,13 +25,13 @@ import java.util.ArrayList;
 public class StateMachine extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private ActorRef virtualNode,sendResultsTo;
+    private ActorRef virtualNode, sendResultsTo;
     private ArrayList prefList;
     private Persistence localDB;
 
-    public StateMachine(ActorRef virtualNode, ArrayList prerencefList, Persistence localDB) {
+    public StateMachine(ActorRef virtualNode, ArrayList preferencefList, Persistence localDB) {
         this.virtualNode = virtualNode;
-        this.prefList = prerencefList;
+        this.prefList = preferencefList;
         this.localDB = localDB;
     }
 
@@ -53,10 +55,20 @@ public class StateMachine extends UntypedActor {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
             this.sendResultsTo = getSender();
             virtualNode.tell(new QuorumWriteRequest(putKeyValue.getKey(), putKeyValue.getObjectValue()), getSelf());
-        } else if(msg instanceof ResultsValue){
+        } else if (msg instanceof ResultsValue) {
             this.sendResultsTo.tell(msg, getSelf());
-        }
-        else {
+            getContext().stop(getSelf());
+        } else if (msg instanceof AckToWrite) {
+            AckToWrite ackToWrite = (AckToWrite) msg;
+            if (ackToWrite.isSuccess())
+                getContext().stop(getSelf());
+            else {
+                /**
+                 * Retry again, writing.
+                 */
+
+            }
+        } else {
             unhandled(msg);
         }
     }

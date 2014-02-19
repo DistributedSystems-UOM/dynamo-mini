@@ -13,8 +13,8 @@ import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
  */
 public class MySQL<T> implements Persistence<T>{
     @Override
-    public T put(T key, T value) {
-        return null;
+    public boolean put(T key, T value) {
+        return false;
     }
 
     @Override
