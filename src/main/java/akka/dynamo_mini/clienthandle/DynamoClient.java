@@ -41,6 +41,11 @@ public class DynamoClient extends UntypedActor {
         if (msg instanceof ResultsValue) {
             ResultsValue readRequest = (ResultsValue) msg;
             log.info("Get results as " + readRequest.getNewObject());
+        } else if (msg instanceof KeyVal) {
+            KeyVal req = (KeyVal) msg;
+            log.info("##### Request : " + req.key + ":" + req.val);
+            WriteRequest writeRequest = new WriteRequest(req.key, null, req.val);
+            loadbalancer.tell(writeRequest, getSelf());
         } else {
             unhandled(msg);
         }
