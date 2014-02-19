@@ -6,6 +6,11 @@ public class ConsistentHash<T> {
 
     private final HashFunction hashFunction;
     private final int numberOfReplicas;
+    /**
+     * How many times same node should assign to the ring.
+     * E.x. Setting this value to 2, same virtual node may represent two times in the ring.
+     */
+    private final int numberOfPositions = 1;
     private final SortedMap<Integer, T> ring = new TreeMap<>();
 
     public ConsistentHash(HashFunction hashFunction, int numberOfReplicas, Collection<T> nodes) {
@@ -18,13 +23,13 @@ public class ConsistentHash<T> {
     }
 
     public void add(T node) {
-        for (int i = 0; i < numberOfReplicas; i++) {
+        for (int i = 0; i < numberOfPositions; i++) {
             ring.put(hashFunction.hash(node.toString() + i), node);
         }
     }
 
     public void remove(T node) {
-        for (int i = 0; i < numberOfReplicas; i++) {
+        for (int i = 0; i < numberOfPositions; i++) {
             ring.remove(hashFunction.hash(node.toString() + i));
         }
     }
@@ -34,7 +39,6 @@ public class ConsistentHash<T> {
             return null;
         }
         int hash = hashFunction.hash(key);
-        //System.out.println("GET : "+hash);
 
         if (!ring.containsKey(hash)) {
             SortedMap<Integer, T> tailMap = ring.tailMap(hash);
@@ -50,18 +54,14 @@ public class ConsistentHash<T> {
         int hash = hashFunction.hash(key);
         ArrayList<T> preferenceList = new ArrayList<>();
         if (!ring.containsKey(hash)) {
-            SortedMap<Integer, T> tailMap = ring.tailMap(hash);
-            hash = tailMap.isEmpty() ? ring.firstKey() : tailMap.firstKey();
-
-            Set s = tailMap.entrySet();
+            Set s = ring.tailMap(hash).entrySet();
 
             // Using iterator in SortedMap
             Iterator i = s.iterator();
             int cnt = 0;
             // System.out.println("### replicas " + numberOfReplicas);
-            while (i.hasNext() && ++cnt < numberOfReplicas) {
+            while (i.hasNext() && cnt++ < numberOfReplicas) {
                 Map.Entry m = (Map.Entry) i.next();
-
                 preferenceList.add((T) m.getValue());
             }
         }

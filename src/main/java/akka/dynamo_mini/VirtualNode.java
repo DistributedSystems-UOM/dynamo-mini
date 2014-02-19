@@ -104,7 +104,7 @@ public class VirtualNode extends UntypedActor {
             ActorRef coordinator = ringManager.get(readRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
                 ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
-                        ringManager.getPreferenceList(readRequest.getKey()), localDB));
+                        ringManager.getPreferenceList(readRequest.getKey())));
                 /**
                  * Send Preference List to the State machine
                  */
@@ -123,7 +123,7 @@ public class VirtualNode extends UntypedActor {
             ActorRef coordinator = ringManager.get(writeRequest.getKey());
             if (coordinator.path().name().equals(virtualNode.path().name())) {
                 ActorRef stateMachine = getContext().actorOf(Props.create(StateMachine.class, getSelf(),
-                        ringManager.getPreferenceList(writeRequest.getKey()), localDB));
+                        ringManager.getPreferenceList(writeRequest.getKey())));
                 /**
                  * Send Preference List to the State machine
                  */
@@ -178,18 +178,19 @@ public class VirtualNode extends UntypedActor {
 
         } else if (msg instanceof ACKJoinToRing) {
             ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
-            this.numOfNodes = ackJoinToRing.getNumNodes();
+            //ackJoinToRing.getNumNodes();
             log.info(nodeName + " got ACK from bootstraper");
             ringManager.add(getSelf());
+            this.numOfNodes++;
         }
         /**
          * Details of a virtual node which is already in the ring.
          */
         else if (msg instanceof CurrentRingNode) {
             CurrentRingNode currentRingNode = (CurrentRingNode) msg;
-            log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName);
+            log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName + " /" + this.numOfNodes);
             ringManager.add(currentRingNode.getActorRef());
-
+            this.numOfNodes++;
         } else if (msg instanceof Terminated) {
             final Terminated t = (Terminated) msg;
             ActorRef actor = t.getActor();

@@ -45,7 +45,7 @@ public class Dynamo {
         bootstraper = system.actorOf(Props.create(Bootstraper.class), "bootstraper");
         Thread.sleep(5000);
 
-        for(int i=1; i < 4 ; i++){ // Start Number of Virtual Nodes
+        for(int i=1; i < 8 ; i++){ // Start Number of Virtual Nodes
             String nodeName = "node" + i;
             system.actorOf(Props.create(VirtualNode.class), nodeName);
         }
