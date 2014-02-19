@@ -24,7 +24,7 @@ import java.util.List;
  */
 public class LoadBalancer extends UntypedActor {
 
-    private List<ActorRef> ringMembers = new ArrayList<ActorRef>();
+    private List<ActorRef> ringMembers = new ArrayList<>();
     Cluster cluster = Cluster.get(getContext().system());
 
     ActorRef router;
@@ -43,8 +43,7 @@ public class LoadBalancer extends UntypedActor {
             System.out.println(" *** # of nodes in Load Balancer List : " + ringMembers.size());
             router = getContext().actorOf(
                     Props.empty().withRouter(SmallestMailboxRouter.create(ringMembers)));
-            router.tell(new Test("** Message from Load Balancer to a node via ROUTER...."),
-                    getSelf());
+            //router.tell(new Test("** Message from Load Balancer to a node via ROUTER...."), getSelf());
         } 
         else if (message instanceof LBUpdateRemove) {
             LBUpdateRemove nodeRemoveMsg = (LBUpdateRemove) message;

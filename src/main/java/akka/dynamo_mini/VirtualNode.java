@@ -21,7 +21,7 @@ import akka.dynamo_mini.persistence_engine.Memory;
 import akka.dynamo_mini.persistence_engine.Persistence;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
-import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.AckToWrite;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
@@ -66,7 +66,7 @@ public class VirtualNode extends UntypedActor {
         Address address = cluster.selfAddress();
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
         this.bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
-        this.bootstraper.tell(new Identify(nodeName), virtualNode);
+        //this.bootstraper.tell(new Identify(nodeName), virtualNode);
         this.ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
         this.localDB = new Memory();
         this.numOfNodes = 0;
@@ -93,7 +93,7 @@ public class VirtualNode extends UntypedActor {
         /*****************************************************
          * Client Requests to the Coordinator
          *****************************************************/
-        if (msg instanceof ReadRequest) { // most frequent request
+        else if (msg instanceof ReadRequest) { // most frequent request
             ReadRequest readRequest = (ReadRequest) msg;
             log.info("Read Request -- ( " + readRequest.getKey() + ")");
             /**
@@ -144,21 +144,49 @@ public class VirtualNode extends UntypedActor {
          * Bootstrap steps
          **************************************************/
         else if (msg instanceof DistributedPubSubMediator.SubscribeAck) {
-            log.info("subscribing " + nodeName);
+            //log.info("subscribing " + nodeName);
             // Bootstraper is running. Ask to send join to ring to current virtual nodes in the ring.
-            log.info("Ask for join to the ring from bootstraper");
-            bootstraper.tell(new JoinToRing(nodeName), getSelf());
-
-        } else if (msg instanceof AddNewNodeToRing) {
+            //log.info("Ask for join to the ring from bootstraper");
+            /** Contact boostraper and ask for join into the ring. */
+            this.bootstraper.tell(new JoinToRing(nodeName), getSelf());
+        }
+        /**
+         * Details about a new node which is broadcast by the bootstraper.
+         */
+        else if (msg instanceof AddNewNodeToRing) {
             AddNewNodeToRing addNewNodeToRing = (AddNewNodeToRing) msg;
-            ringManager.add(addNewNodeToRing.getActorRef());
-            this.addNewNodeHandle(addNewNodeToRing.getActorRef());
-
-            /**
-             * Send own details to the new node
-             */
-            addNewNodeToRing.getActorRef().tell(new CurrentRingNode(nodeName, getSelf()), getSelf());
-        } else if (msg instanceof ActorIdentity) {
+            if (getSelf() != addNewNodeToRing.getActorRef()) {
+                this.addNewNodeHandle(addNewNodeToRing.getActorRef(),
+                        ringManager.getPreferenceList(addNewNodeToRing.getActorRef().path().name()));
+                ringManager.add(addNewNodeToRing.getActorRef());
+                /**  Send own details to the new node  */
+                addNewNodeToRing.getActorRef().tell(new CurrentRingNode(nodeName, getSelf()), getSelf());
+                this.numOfNodes++;
+            }
+        }
+        /**
+         * ACK for previous request to join into the ring.
+         */
+        else if (msg instanceof ACKJoinToRing) {
+            ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
+            //ackJoinToRing.getNumNodes();
+            //log.info(nodeName + " got ACK from bootstraper");
+            ringManager.add(getSelf());
+            this.numOfNodes++;
+        }
+        /**
+         * Details of a virtual node which is already in the ring.
+         */
+        else if (msg instanceof CurrentRingNode) {
+            CurrentRingNode currentRingNode = (CurrentRingNode) msg;
+            log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName + " /" + this.numOfNodes);
+            ringManager.add(currentRingNode.getActorRef());
+            this.numOfNodes++;
+        }
+        /**
+         *
+         */
+        else if (msg instanceof ActorIdentity) {
             ActorIdentity identity = (ActorIdentity) msg;
             log.info("Bootstraper replied with :" + identity.correlationId() + " to node:" + nodeName);
             if (identity.correlationId().equals(nodeName)) {
@@ -177,21 +205,6 @@ public class VirtualNode extends UntypedActor {
                 isBootstraperUp = true;
             }
 
-        } else if (msg instanceof ACKJoinToRing) {
-            ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
-            //ackJoinToRing.getNumNodes();
-            log.info(nodeName + " got ACK from bootstraper");
-            ringManager.add(getSelf());
-            this.numOfNodes++;
-        }
-        /**
-         * Details of a virtual node which is already in the ring.
-         */
-        else if (msg instanceof CurrentRingNode) {
-            CurrentRingNode currentRingNode = (CurrentRingNode) msg;
-            log.info("Add node " + currentRingNode.getActorRef().path().name() + " to the ring in " + nodeName + " /" + this.numOfNodes);
-            ringManager.add(currentRingNode.getActorRef());
-            this.numOfNodes++;
         } else if (msg instanceof Terminated) {
             final Terminated t = (Terminated) msg;
             ActorRef actor = t.getActor();
@@ -211,23 +224,26 @@ public class VirtualNode extends UntypedActor {
         }
 
         /**else if (msg.equals(BACKEND_REGISTRATION)) {
-            getContext().watch(getSender());
-            backends.add(getSender());
+         getContext().watch(getSender());
+         backends.add(getSender());
 
-        } else if (msg instanceof Terminated) {
-            Terminated terminated = (Terminated) msg;
-            backends.remove(terminated.getActor());
+         } else if (msg instanceof Terminated) {
+         Terminated terminated = (Terminated) msg;
+         backends.remove(terminated.getActor());
 
-        } else {
-            unhandled(msg);
-        }*/
+         } else {
+         unhandled(msg);
+         }*/
     }
 
-    private void addNewNodeHandle(ActorRef newNode){
-
+    private void addNewNodeHandle(ActorRef newNode, ArrayList<ActorRef> prefList) {
+        System.out.println(nodeName + " - *************************************************************** " + prefList.size());
+        for (ActorRef actorRef : prefList) {
+            System.out.println(">>>> " + nodeName + " : " + actorRef + " when adding - " + newNode);
+        }
     }
 
-    private void removeNewNodeHandle(ActorRef rmNode){
+    private void removeNewNodeHandle(ActorRef rmNode) {
 
     }
 

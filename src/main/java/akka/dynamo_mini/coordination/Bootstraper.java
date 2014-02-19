@@ -81,7 +81,7 @@ public class Bootstraper extends UntypedActor {
             NewNodeConnected nnc = (NewNodeConnected) msg;
             //routees.add(getSender());
             //reinitiateRouter();
-            System.out.println("new node connected.. to Bootstraper");
+            //System.out.println("new node connected.. to Bootstraper");
         } else {
             unhandled(msg);
         }

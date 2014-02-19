@@ -1,5 +1,7 @@
 package akka.dynamo_mini.node_management;
 
+import akka.actor.ActorRef;
+
 import java.util.*;
 
 public class ConsistentHash<T> {
@@ -23,15 +25,19 @@ public class ConsistentHash<T> {
     }
 
     public void add(T node) {
-        for (int i = 0; i < numberOfPositions; i++) {
+        ActorRef actorRef = (ActorRef) node;
+        ring.put(hashFunction.hash(actorRef.path().name()), node);
+        /*for (int i = 0; i < numberOfPositions; i++) {
             ring.put(hashFunction.hash(node.toString() + i), node);
-        }
+        }*/
     }
 
     public void remove(T node) {
-        for (int i = 0; i < numberOfPositions; i++) {
+        ActorRef actorRef = (ActorRef) node;
+        ring.remove(hashFunction.hash(actorRef.path().name()));
+        /*for (int i = 0; i < numberOfPositions; i++) {
             ring.remove(hashFunction.hash(node.toString() + i));
-        }
+        }*/
     }
 
     public T get(Object key) {
@@ -53,13 +59,21 @@ public class ConsistentHash<T> {
         }
         int hash = hashFunction.hash(key);
         ArrayList<T> preferenceList = new ArrayList<>();
-        if (!ring.containsKey(hash)) {
-            Set s = ring.tailMap(hash).entrySet();
 
-            // Using iterator in SortedMap
-            Iterator i = s.iterator();
-            int cnt = 0;
-            // System.out.println("### replicas " + numberOfReplicas);
+        Set s = ring.tailMap(hash).entrySet();
+        //System.out.println("Preference List size: " + s.size() + " / " + ring.size());
+
+        // Using iterator in SortedMap
+        Iterator i = s.iterator();
+        int cnt = 0;
+        // System.out.println("### replicas " + numberOfReplicas);
+        while (i.hasNext() && cnt++ < numberOfReplicas) {
+            Map.Entry m = (Map.Entry) i.next();
+            preferenceList.add((T) m.getValue());
+        }
+        if (s.size() < numberOfReplicas){
+            s = ring.entrySet();
+            i = s.iterator();
             while (i.hasNext() && cnt++ < numberOfReplicas) {
                 Map.Entry m = (Map.Entry) i.next();
                 preferenceList.add((T) m.getValue());
