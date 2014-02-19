@@ -61,19 +61,19 @@ public interface BootstraperProtocols {
 
     public static class ACKJoinToRing implements Serializable {
         private final String nodeName;
-        private final int numReplicas;
+        private final int numNodes;
 
-        public ACKJoinToRing(String key, int numReplicas) {
+        public ACKJoinToRing(String key, int numNodes) {
             this.nodeName = key;
-            this.numReplicas = numReplicas;
+            this.numNodes = numNodes;
         }
 
         public String getNodeName() {
             return this.nodeName;
         }
 
-        public int getNumReplicas() {
-            return this.numReplicas;
+        public int getNumNodes() {
+            return this.numNodes;
         }
     }
 

@@ -45,11 +45,12 @@ public class VirtualNode extends UntypedActor {
     boolean isBootstraperUp = false;
     private ActorRef mediator = DistributedPubSubExtension.get(getContext().system()).mediator();
     private Persistence localDB;
+    private int numOfNodes;
+
     /**
      * Store the preference list of other virtual nodes
      */
     ConsistentHash<ActorRef> ringManager;
-
 
     {
         // subscribe to the topic named "content"
@@ -64,10 +65,11 @@ public class VirtualNode extends UntypedActor {
         nodeName = self().path().name();
         Address address = cluster.selfAddress();
         System.out.println("Virtual Node : " + nodeName + " is up @ " + address.protocol() + " : " + address.hostPort());
-        bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
-        bootstraper.tell(new Identify(nodeName), virtualNode);
+        this.bootstraper = getContext().actorSelection(address.protocol() + "://" + address.hostPort() + "/user/bootstraper");
+        this.bootstraper.tell(new Identify(nodeName), virtualNode);
         this.ringManager = new ConsistentHash<>(new HashFunction(), numReplicas, new ArrayList<ActorRef>());
         this.localDB = new Memory();
+        this.numOfNodes = 0;
     }
 
     //re-subscribe when restart
@@ -176,10 +178,9 @@ public class VirtualNode extends UntypedActor {
 
         } else if (msg instanceof ACKJoinToRing) {
             ACKJoinToRing ackJoinToRing = (ACKJoinToRing) msg;
-            numReplicas = ackJoinToRing.getNumReplicas();
+            this.numOfNodes = ackJoinToRing.getNumNodes();
             log.info(nodeName + " got ACK from bootstraper");
             ringManager.add(getSelf());
-
         }
         /**
          * Details of a virtual node which is already in the ring.
