@@ -31,4 +31,8 @@ public class MySQL<T> implements Persistence<T>{
     public T copyData(T startKey, T endKey) {
         return null;
     }
+
+    public boolean deleteData(T startKey, T endKey){
+        return false;
+    }
 }

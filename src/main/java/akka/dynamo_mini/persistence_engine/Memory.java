@@ -1,9 +1,12 @@
 package akka.dynamo_mini.persistence_engine;
 
+import java.util.Iterator;
+import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Class Description.
+ * In this implementation of persistence, data store in the memory.
  *
  * @author: Gihan Karunarathne
  * Date: 1/12/14
@@ -11,25 +14,45 @@ import java.util.TreeMap;
  * @email: gckarunarathne@gmail.com
  */
 public class Memory<T> implements Persistence<T> {
-    private TreeMap<String, T> values = new TreeMap<>();
+    private TreeMap<Integer, T> values = new TreeMap<>();
 
     @Override
     public T put(T key, T value) {
-        String k = (String) key;
+        int k = hashFunction.hash((String) key);
         T putValue = values.put(k, value);
         return putValue;
     }
 
     @Override
     public T get(T key) {
-        return values.get(key);
+        return values.get(hashFunction.hash(key));
     }
 
     public T moveData(T startKey, T endKey) {
-        return null;
+        NavigableMap navigableMap = values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
+        Set s = navigableMap.entrySet();
+        Iterator i = s.iterator();
+
+        while (i.hasNext()) {
+            values.remove(i.next());
+        }
+        return (T) navigableMap;
     }
 
     public T copyData(T startKey, T endKey) {
-        return null;
+        return (T) values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
+    }
+
+    public boolean deleteData(T startKey, T endKey) {
+        NavigableMap navigableMap = values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
+        Set s = navigableMap.entrySet();
+        Iterator i = s.iterator();
+
+        while (i.hasNext()) values.remove(i.next());
+
+        if (values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false).size() == 0)
+            return true;
+        else
+            return false;
     }
 }
