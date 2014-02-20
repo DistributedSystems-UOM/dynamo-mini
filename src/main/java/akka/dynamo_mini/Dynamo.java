@@ -52,7 +52,13 @@ public class Dynamo {
         }
     }
     
-    public static void createClient(ActorSystem system){
+    public static void createClient(ActorSystem system) throws InterruptedException{
         system.actorOf(Props.create(DynamoClient.class), "client1");
+
+        for(int i=10; i < 12 ; i++){ // Start Number of Virtual Nodes
+            String nodeName = "node" + i;
+            system.actorOf(Props.create(VirtualNode.class), nodeName);
+            Thread.sleep(5000);
+        }
     }
 }

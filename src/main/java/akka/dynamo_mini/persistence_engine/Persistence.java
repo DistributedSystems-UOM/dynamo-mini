@@ -2,6 +2,8 @@ package akka.dynamo_mini.persistence_engine;
 
 import akka.dynamo_mini.node_management.HashFunction;
 
+import java.util.TreeMap;
+
 /**
  * Class Description.
  *
@@ -48,6 +50,8 @@ public interface Persistence<T> {
      * @return value set for given key range
      */
     public T copyData(T startKey, T endKey);
+
+    public boolean pasteData(T data);
 
     /**
      * Delete values in a given range which was moved into another virtual node

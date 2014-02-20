@@ -3,6 +3,8 @@ package akka.dynamo_mini.persistence_engine;
 import akka.dynamo_mini.VirtualNode;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 
+import java.util.TreeMap;
+
 /**
  * Class Description.
  *
@@ -30,6 +32,10 @@ public class MySQL<T> implements Persistence<T>{
     @Override
     public T copyData(T startKey, T endKey) {
         return null;
+    }
+
+    public boolean pasteData(T data){
+        return  false;
     }
 
     public boolean deleteData(T startKey, T endKey){

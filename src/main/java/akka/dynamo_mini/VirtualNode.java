@@ -21,6 +21,7 @@ import akka.dynamo_mini.persistence_engine.Memory;
 import akka.dynamo_mini.persistence_engine.Persistence;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
+import akka.dynamo_mini.protocol.VirtualNodeProtocols.*;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.AckToWrite;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.GetKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
@@ -28,7 +29,7 @@ import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import java.util.ArrayList;
+import java.util.*;
 
 import static akka.dynamo_mini.protocol.BootstraperProtocols.*;
 import static akka.dynamo_mini.protocol.ClientProtocols.ReadRequest;
@@ -108,6 +109,8 @@ public class VirtualNode extends UntypedActor {
                 /**
                  * Send Preference List to the State machine
                  */
+
+                /* Testing preference lists
                 ArrayList<ActorRef> refs = ringManager.getPreviousList(readRequest.getKey());
                 System.out.println("Printing previous list");
                 for (ActorRef ref : refs) {
@@ -117,7 +120,7 @@ public class VirtualNode extends UntypedActor {
                 System.out.println("Printing preference list");
                 for (ActorRef ref : refs) {
                     System.out.println(ref);
-                }
+                }*/
 
                 stateMachine.forward(new GetKeyValue(readRequest.getKey()), getContext());
             } else {
@@ -147,9 +150,9 @@ public class VirtualNode extends UntypedActor {
         /*****************************************************
          * Virtual Node steps
          *****************************************************/
-        else if (msg instanceof PutKeyValue) {
-            PutKeyValue putKeyValue = (PutKeyValue) msg;
-
+        else if (msg instanceof MoveDataToNewNode) {
+            MoveDataToNewNode moveDataToNewNode = (MoveDataToNewNode) msg;
+            localDB.pasteData(moveDataToNewNode.getData());
         }
         /**************************************************
          * Bootstrap steps
@@ -167,12 +170,16 @@ public class VirtualNode extends UntypedActor {
         else if (msg instanceof AddNewNodeToRing) {
             AddNewNodeToRing addNewNodeToRing = (AddNewNodeToRing) msg;
             if (getSelf() != addNewNodeToRing.getActorRef()) {
-                this.addNewNodeHandle(addNewNodeToRing.getActorRef(),
-                        ringManager.getPreferenceList(addNewNodeToRing.getActorRef().path().name()));
-                ringManager.add(addNewNodeToRing.getActorRef());
-                /**  Send own details to the new node  */
-                addNewNodeToRing.getActorRef().tell(new CurrentRingNode(nodeName, getSelf()), getSelf());
-                this.numOfNodes++;
+                ArrayList prefList = ringManager.getPreferenceList(addNewNodeToRing.getActorRef().path().name());
+                if (this.isContainInPrefList(getSelf().path().name(), prefList)) {
+                    this.addNewNodeHandle(addNewNodeToRing.getActorRef(),prefList,
+                            ringManager.getPreferenceList(addNewNodeToRing.getActorRef().path().name()));
+                    /** Should add to the ring after sending data */
+                    ringManager.add(addNewNodeToRing.getActorRef());
+                    /**  Send own details to the new node  */
+                    addNewNodeToRing.getActorRef().tell(new CurrentRingNode(nodeName, getSelf()), getSelf());
+                    this.numOfNodes++;
+                }
             }
         }
         /**
@@ -247,15 +254,41 @@ public class VirtualNode extends UntypedActor {
          }*/
     }
 
-    private void addNewNodeHandle(ActorRef newNode, ArrayList<ActorRef> prefList) {
+    private void addNewNodeHandle(ActorRef newNode, ArrayList<ActorRef> prefList, ArrayList<ActorRef> prevList) {
+
         System.out.println(nodeName + " - *************************************************************** " + prefList.size());
         for (ActorRef actorRef : prefList) {
             System.out.println(">>>> " + nodeName + " : " + actorRef + " when adding - " + newNode);
+        }
+        if(ringManager.getSize() <= numReplicas)
+            return;
+
+        // Reverse the previous nodes list
+        Collections.reverse(prevList);
+        prevList.add(newNode);
+        for (int i = 0; i < prefList.size(); i++){
+            if (getSelf().path().name().equals(prefList.get(i).path().name())){
+                System.out.println("pref : " + prefList.size() + " prev: " + prevList.size());
+                System.out.println("Move data in range :" + prevList.get(i).path().name() + " to:" + prevList.get(i + 1).path().name());
+                SortedMap data = (SortedMap) localDB.copyData(prevList.get(i).path().name(), prevList.get(i + 1).path().name());
+                newNode.tell(new MoveDataToNewNode(data),getSelf());
+                localDB.deleteData(prevList.get(i).path().name(), prevList.get(i + 1).path().name());
+            }
         }
     }
 
     private void removeNewNodeHandle(ActorRef rmNode) {
 
+    }
+
+    private boolean isContainInPrefList(String name, ArrayList<ActorRef> prefList) {
+        if (prefList == null) return false;
+
+        for (ActorRef ref : prefList) {
+            if (ref.path().name().equals(name))
+                return true;
+        }
+        return false;
     }
 
 }

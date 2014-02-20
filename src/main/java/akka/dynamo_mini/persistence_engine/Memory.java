@@ -1,9 +1,6 @@
 package akka.dynamo_mini.persistence_engine;
 
-import java.util.Iterator;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * In this implementation of persistence, data store in the memory.
@@ -14,7 +11,7 @@ import java.util.TreeMap;
  * @email: gckarunarathne@gmail.com
  */
 public class Memory<T> implements Persistence<T> {
-    private TreeMap<Integer, T> values = new TreeMap<>();
+    private SortedMap<Integer, T> values = new TreeMap<>();
 
     @Override
     public boolean put(T key, T value) {
@@ -31,7 +28,7 @@ public class Memory<T> implements Persistence<T> {
     }
 
     public T moveData(T startKey, T endKey) {
-        NavigableMap navigableMap = values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
+        SortedMap navigableMap = values.subMap(hashFunction.hash(startKey), hashFunction.hash(endKey));
         Set s = navigableMap.entrySet();
         Iterator i = s.iterator();
 
@@ -42,17 +39,36 @@ public class Memory<T> implements Persistence<T> {
     }
 
     public T copyData(T startKey, T endKey) {
-        return (T) values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
+        SortedMap data = new TreeMap();
+
+        if (!values.isEmpty()) {
+            data = values.subMap(hashFunction.hash(startKey), hashFunction.hash(endKey));
+            /*while (!map.isEmpty()) {
+                Map.Entry e = map.pollFirstEntry();
+                data.put(e.getKey(), e.getValue());
+            }*/
+        }
+        return (T) data;
+    }
+
+    public boolean pasteData(T data) {
+        values.putAll((SortedMap) data);
+        return true;
     }
 
     public boolean deleteData(T startKey, T endKey) {
-        NavigableMap navigableMap = values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false);
-        Set s = navigableMap.entrySet();
+        if (values.isEmpty()) return true;
+
+        SortedMap sortedMap = values.subMap(hashFunction.hash(startKey), hashFunction.hash(endKey));
+        Set s = sortedMap.entrySet();
         Iterator i = s.iterator();
 
-        while (i.hasNext()) values.remove(i.next());
+        while (i.hasNext()) {
+            Map.Entry m = (Map.Entry) i.next();
+            values.remove(m.getKey());
+        }
 
-        if (values.subMap(hashFunction.hash(startKey), true, hashFunction.hash(endKey), false).size() == 0)
+        if (values.subMap(hashFunction.hash(startKey), hashFunction.hash(endKey)).size() == 0)
             return true;
         else
             return false;

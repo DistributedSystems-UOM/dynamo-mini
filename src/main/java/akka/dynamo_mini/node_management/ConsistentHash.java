@@ -53,6 +53,10 @@ public class ConsistentHash<T> {
         return ring.get(hash);
     }
 
+    public int getSize(){
+        return ring.size();
+    }
+
     public ArrayList<T> getPreferenceList(Object key) {
         if (ring.isEmpty()) {
             return null;
@@ -116,7 +120,7 @@ public class ConsistentHash<T> {
                 preferenceList.add( (T) l.get(j++));
             }
         }
-        printRing();
+        // printRing();
         return preferenceList;
     }
 
