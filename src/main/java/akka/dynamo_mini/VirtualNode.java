@@ -108,6 +108,17 @@ public class VirtualNode extends UntypedActor {
                 /**
                  * Send Preference List to the State machine
                  */
+                ArrayList<ActorRef> refs = ringManager.getPreviousList(readRequest.getKey());
+                System.out.println("Printing previous list");
+                for (ActorRef ref : refs) {
+                    System.out.println(ref);
+                }
+                refs = ringManager.getPreferenceList(readRequest.getKey());
+                System.out.println("Printing preference list");
+                for (ActorRef ref : refs) {
+                    System.out.println(ref);
+                }
+
                 stateMachine.forward(new GetKeyValue(readRequest.getKey()), getContext());
             } else {
                 log.info("Forward write request to :" + nodeName + " from " + coordinator.path());
