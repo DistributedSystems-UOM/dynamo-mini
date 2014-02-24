@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" id="WebApp_ID" version="2.5">
+  <display-name>Reading From File</display-name>
+  <servlet>
+    <servlet-name>Initialize</servlet-name>
+    <servlet-class>dynamo_server.Initialize</servlet-class>
+  </servlet>
+  <servlet>
+    <servlet-name>InputKeyVal</servlet-name>
+    <servlet-class>dynamo_server.InputKeyVal</servlet-class>
+  </servlet>
+  <servlet>
+    <servlet-name>PullReq</servlet-name>
+    <servlet-class>dynamo_server.PullReq</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>Initialize</servlet-name>
+    <url-pattern>/Initialize.do</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>InputKeyVal</servlet-name>
+    <url-pattern>/InputKeyVal.do</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>PullReq</servlet-name>
+    <url-pattern>/PullReq.do</url-pattern>
+  </servlet-mapping>
+  <listener>
+        <listener-class>dynamo_server.DynamoStarter</listener-class>
+    </listener>
+</web-app>

@@ -16,7 +16,8 @@ public class DynamoClient extends UntypedActor {
     Address address = cluster.selfAddress();
     ActorSelection loadbalancer = getContext().actorSelection(
             address.protocol() + "://" + address.hostPort() + "/user/loadbalancer");
-
+    private ResultsValue readRequest;
+    
     @Override
     public void preStart() throws Exception {
         WriteRequest writeRequest1 = new WriteRequest("Put:Key-1", null, "Put:Object-1");
@@ -51,4 +52,7 @@ public class DynamoClient extends UntypedActor {
         }
     }
 
+    public ResultsValue getResultsValue(){
+        return this.readRequest;
+    }
 }
