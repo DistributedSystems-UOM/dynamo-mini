@@ -23,10 +23,10 @@ public class Dynamo {
          */
         system = ActorSystem.create(systemName);
         Address joinAddress = Cluster.get(system).selfAddress();
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         startLoadBalancer(system, joinAddress);
         startDynamoRing(joinAddress);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
         createClient(system);
 
     }
@@ -43,19 +43,19 @@ public class Dynamo {
         Cluster.get(system).join(joinAddress);
 
         bootstraper = system.actorOf(Props.create(Bootstraper.class), "bootstraper");
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         for(int i=1; i < 8 ; i++){ // Start Number of Virtual Nodes
             String nodeName = "node" + i;
             system.actorOf(Props.create(VirtualNode.class), nodeName);
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         }
     }
     
     public static void createClient(ActorSystem system) throws InterruptedException{
         system.actorOf(Props.create(DynamoClient.class), "client1");
 
-        for(int i=10; i < 12 ; i++){ // Start Number of Virtual Nodes
+        for(int i=10; i < 11 ; i++){ // Start Number of Virtual Nodes
             String nodeName = "node" + i;
             system.actorOf(Props.create(VirtualNode.class), nodeName);
             Thread.sleep(5000);

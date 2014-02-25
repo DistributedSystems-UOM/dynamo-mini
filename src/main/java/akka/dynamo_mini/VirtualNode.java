@@ -277,8 +277,22 @@ public class VirtualNode extends UntypedActor {
         }
     }
 
-    private void removeNewNodeHandle(ActorRef rmNode) {
+    private void removeNewNodeHandle(ActorRef rmNode, ArrayList<ActorRef> prefList, ArrayList<ActorRef> prevList) {
+        if(ringManager.getSize() <= numReplicas)
+            return;
 
+        // Reverse the previous nodes list
+        Collections.reverse(prevList);
+        prevList.add(rmNode);
+        for (int i = 0; i < prefList.size(); i++){
+            if (getSelf().path().name().equals(prefList.get(i).path().name())){
+                System.out.println("pref : " + prefList.size() + " prev: " + prevList.size());
+                System.out.println("Move data in range :" + prevList.get(i).path().name() + " to:" + prevList.get(i + 1).path().name());
+                SortedMap data = (SortedMap) localDB.copyData(prevList.get(i).path().name(), prevList.get(i + 1).path().name());
+                rmNode.tell(new MoveDataToNewNode(data),getSelf());
+                localDB.deleteData(prevList.get(i).path().name(), prevList.get(i + 1).path().name());
+            }
+        }
     }
 
     private boolean isContainInPrefList(String name, ArrayList<ActorRef> prefList) {

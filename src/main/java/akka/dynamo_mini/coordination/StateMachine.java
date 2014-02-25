@@ -2,6 +2,7 @@ package akka.dynamo_mini.coordination;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
+import akka.cluster.VectorClock;
 import akka.dynamo_mini.Commons;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumReadRequest;
 import akka.dynamo_mini.protocol.StateMachineProtocols.QuorumWriteRequest;
@@ -11,6 +12,7 @@ import akka.dynamo_mini.protocol.VirtualNodeProtocols.PutKeyValue;
 import akka.dynamo_mini.protocol.VirtualNodeProtocols.ResultsValue;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import scala.collection.immutable.TreeMap;
 
 import java.util.ArrayList;
 
@@ -65,6 +67,7 @@ public class StateMachine extends UntypedActor {
          */
         else if (msg instanceof PutKeyValue) {
             PutKeyValue putKeyValue = (PutKeyValue) msg;
+
             this.sendResultsTo = getSender();
             for (ActorRef actorRef : prefList) {
                 actorRef.tell(new QuorumWriteRequest(putKeyValue.getKey(), putKeyValue.getObjectValue()), getSelf());
